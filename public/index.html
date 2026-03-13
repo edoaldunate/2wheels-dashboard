@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>2Wheels — Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:       #0e0f11;
+    --surface:  #16181c;
+    --surface2: #1e2127;
+    --border:   #2a2d35;
+    --accent:   #e8ff47;
+    --accent2:  #47c8ff;
+    --danger:   #ff5f57;
+    --warn:     #ffb647;
+    --ok:       #47ff9c;
+    --text:     #e8e9ec;
+    --muted:    #6b7280;
+    --mono:     'Space Mono', monospace;
+    --sans:     'DM Sans', sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: var(--sans); font-size: 14px; min-height: 100vh; }
+
+  header { border-bottom: 1px solid var(--border); padding: 18px 32px; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+  .logo { font-family: var(--mono); font-size: 15px; font-weight: 700; letter-spacing: .04em; color: var(--accent); display: flex; align-items: center; gap: 10px; }
+  .logo-icon { width: 28px; height: 28px; border: 1.5px solid var(--accent); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; }
+  .pill { font-family: var(--mono); font-size: 11px; padding: 4px 10px; border-radius: 20px; border: 1px solid; display: inline-flex; align-items: center; gap: 6px; }
+  .pill.ok    { border-color: var(--ok);    color: var(--ok); }
+  .pill.error { border-color: var(--danger); color: var(--danger); }
+  .pill.idle  { border-color: var(--muted); color: var(--muted); }
+  .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; animation: pulse 1.5s ease-in-out infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+  /* SOURCES NAV */
+  .sources { border-bottom: 1px solid var(--border); padding: 0 32px; display: flex; gap: 0; }
+  .src-tab { font-family: var(--mono); font-size: 12px; padding: 14px 20px; cursor: pointer; border-bottom: 2px solid transparent; color: var(--muted); transition: color .15s, border-color .15s; display: flex; align-items: center; gap: 8px; }
+  .src-tab:hover { color: var(--text); }
+  .src-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+  .src-tag { font-size: 9px; padding: 2px 6px; border-radius: 3px; font-weight: 700; letter-spacing: .06em; }
+  .src-tag.live { background: rgba(71,255,156,.15); color: var(--ok); border: 1px solid rgba(71,255,156,.3); }
+  .src-tag.soon { background: rgba(107,114,128,.12); color: var(--muted); border: 1px solid rgba(107,114,128,.2); }
+
+  /* TOOLBAR */
+  .toolbar { padding: 16px 32px; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+  .toolbar label { font-size: 11px; font-family: var(--mono); color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+  .toolbar input[type="date"], .toolbar select { background: var(--surface2); border: 1px solid var(--border); color: var(--text); font-family: var(--mono); font-size: 12px; padding: 7px 10px; border-radius: 6px; cursor: pointer; outline: none; transition: border-color .15s; }
+  .toolbar input:focus, .toolbar select:focus { border-color: var(--accent); }
+  .sep { flex: 1; }
+  .btn { background: var(--accent); color: #0e0f11; font-family: var(--mono); font-size: 12px; font-weight: 700; padding: 8px 18px; border: none; border-radius: 6px; cursor: pointer; transition: opacity .15s; letter-spacing: .03em; }
+  .btn:hover { opacity: .88; }
+  .btn:disabled { opacity: .4; cursor: not-allowed; }
+  .btn-ghost { background: transparent; border: 1px solid var(--border); color: var(--muted); font-family: var(--mono); font-size: 12px; padding: 7px 14px; border-radius: 6px; cursor: pointer; transition: border-color .15s, color .15s; }
+  .btn-ghost:hover { border-color: var(--accent2); color: var(--accent2); }
+
+  /* STATS */
+  .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1px; background: var(--border); border-bottom: 1px solid var(--border); }
+  .stat-card { background: var(--surface); padding: 20px 24px; display: flex; flex-direction: column; gap: 6px; transition: background .15s; }
+  .stat-card:hover { background: var(--surface2); }
+  .stat-label { font-family: var(--mono); font-size: 10px; text-transform: uppercase; letter-spacing: .1em; color: var(--muted); }
+  .stat-value { font-family: var(--mono); font-size: 24px; font-weight: 700; line-height: 1; }
+  .stat-value.yellow { color: var(--accent); }
+  .stat-value.blue   { color: var(--accent2); }
+  .stat-value.green  { color: var(--ok); }
+  .stat-value.orange { color: var(--warn); }
+  .stat-sub { font-size: 11px; color: var(--muted); font-family: var(--mono); }
+
+  /* TABLE */
+  .table-wrap { padding: 24px 32px; overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; }
+  thead tr { border-bottom: 1px solid var(--border); }
+  th { font-family: var(--mono); font-size: 10px; text-transform: uppercase; letter-spacing: .1em; color: var(--muted); padding: 8px 12px; text-align: left; cursor: pointer; user-select: none; white-space: nowrap; }
+  th:hover { color: var(--text); }
+  th.sorted { color: var(--accent); }
+  td { padding: 11px 12px; border-bottom: 1px solid #1c1e24; vertical-align: middle; white-space: nowrap; }
+  tr:hover td { background: var(--surface2); }
+  .cell-num { font-family: var(--mono); font-size: 13px; color: var(--accent); font-weight: 700; }
+  .cell-customer { font-size: 13px; font-weight: 500; max-width: 180px; overflow: hidden; text-overflow: ellipsis; }
+  .cell-date { font-family: var(--mono); font-size: 12px; color: var(--muted); }
+  .cell-chf { font-family: var(--mono); font-size: 13px; text-align: right; }
+
+  .badge { display: inline-flex; align-items: center; font-family: var(--mono); font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; padding: 3px 8px; border-radius: 4px; border: 1px solid; }
+  .badge.reserved { color: #47c8ff; border-color: rgba(71,200,255,.3); background: rgba(71,200,255,.08); }
+  .badge.started  { color: #e8ff47; border-color: rgba(232,255,71,.3);  background: rgba(232,255,71,.08); }
+  .badge.returned { color: #47ff9c; border-color: rgba(71,255,156,.3);  background: rgba(71,255,156,.08); }
+  .badge.concept  { color: #ffb647; border-color: rgba(255,182,71,.3);  background: rgba(255,182,71,.08); }
+  .badge.canceled { color: #6b7280; border-color: rgba(107,114,128,.3); background: rgba(107,114,128,.08); }
+
+  .pay-badge { display: inline-flex; align-items: center; font-family: var(--mono); font-size: 10px; padding: 3px 8px; border-radius: 4px; border: 1px solid; }
+  .pay-badge.paid          { color: var(--ok);    border-color: rgba(71,255,156,.3);  background: rgba(71,255,156,.08); }
+  .pay-badge.payment_due   { color: var(--warn);  border-color: rgba(255,182,71,.3);  background: rgba(255,182,71,.08); }
+  .pay-badge.overpaid      { color: var(--accent2); border-color: rgba(71,200,255,.3); background: rgba(71,200,255,.08); }
+  .pay-badge.partially_paid{ color: #d0a0ff; border-color: rgba(208,160,255,.3); background: rgba(208,160,255,.08); }
+
+  .state-msg { text-align: center; padding: 64px 32px; font-family: var(--mono); font-size: 13px; color: var(--muted); }
+  .state-msg .big { font-size: 32px; margin-bottom: 12px; display: block; }
+  .spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin .7s linear infinite; vertical-align: middle; margin-right: 8px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .progress-bg { height: 3px; background: var(--border); }
+  .progress-bar { height: 100%; background: var(--accent); transition: width .4s ease; }
+
+  /* COMING SOON PANEL */
+  .coming-soon { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 80px 32px; gap: 16px; }
+  .coming-soon .cs-icon { font-size: 40px; }
+  .coming-soon h2 { font-family: var(--mono); font-size: 16px; color: var(--text); }
+  .coming-soon p { font-size: 13px; color: var(--muted); text-align: center; max-width: 360px; line-height: 1.6; }
+  .coming-soon .cs-tags { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; margin-top: 8px; }
+  .cs-tag { font-family: var(--mono); font-size: 11px; padding: 5px 12px; border-radius: 20px; border: 1px solid var(--border); color: var(--muted); }
+
+  /* ERROR BANNER */
+  .error-banner { margin: 16px 32px; padding: 12px 16px; background: rgba(255,95,87,.08); border: 1px solid rgba(255,95,87,.3); border-radius: 8px; font-family: var(--mono); font-size: 12px; color: var(--danger); display: none; }
+
+  @media (max-width: 640px) {
+    header, .toolbar, .table-wrap { padding: 14px 16px; }
+    .stats-grid { grid-template-columns: 1fr 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">⊗</div>
+    2WHEELS / DASHBOARD
+  </div>
+  <div style="display:flex;align-items:center;gap:10px;">
+    <div id="status-pill" class="pill idle"><span class="dot"></span><span id="status-text">listo</span></div>
+  </div>
+</header>
+
+<!-- SOURCE TABS -->
+<div class="sources">
+  <div class="src-tab active" data-src="booqable" onclick="switchSource('booqable')">
+    Booqable <span class="src-tag live">LIVE</span>
+  </div>
+  <div class="src-tab" data-src="sheets" onclick="switchSource('sheets')">
+    Google Sheets <span class="src-tag soon">PRÓXIMO</span>
+  </div>
+  <div class="src-tab" data-src="stripe" onclick="switchSource('stripe')">
+    Stripe <span class="src-tag soon">PRÓXIMO</span>
+  </div>
+</div>
+
+<!-- ══ BOOQABLE ══ -->
+<div id="src-booqable">
+  <div class="toolbar">
+    <label>Desde</label>
+    <input type="date" id="f-from">
+    <label>Hasta</label>
+    <input type="date" id="f-till">
+    <label>Estado</label>
+    <select id="f-status">
+      <option value="">Todos</option>
+      <option value="reserved">Reserved</option>
+      <option value="started">Started</option>
+      <option value="returned">Returned</option>
+      <option value="concept">Concept</option>
+    </select>
+    <label>Pago</label>
+    <select id="f-payment">
+      <option value="">Todos</option>
+      <option value="payment_due">Payment due</option>
+      <option value="partially_paid">Partially paid</option>
+      <option value="paid">Paid</option>
+      <option value="overpaid">Overpaid</option>
+    </select>
+    <div class="sep"></div>
+    <button class="btn-ghost" onclick="setThisMonth()">Este mes</button>
+    <button class="btn-ghost" onclick="setToday()">Hoy</button>
+    <button class="btn" id="btn-load" onclick="loadOrders()">↓ Cargar</button>
+  </div>
+
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-label">Total órdenes</div>
+      <div class="stat-value yellow" id="s-total">—</div>
+      <div class="stat-sub" id="s-total-sub">sin datos</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Facturado (CHF)</div>
+      <div class="stat-value yellow" id="s-invoiced">—</div>
+      <div class="stat-sub" id="s-invoiced-sub">precio bruto</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Cobrado (CHF)</div>
+      <div class="stat-value green" id="s-paid">—</div>
+      <div class="stat-sub" id="s-paid-sub">pagos recibidos</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Por cobrar (CHF)</div>
+      <div class="stat-value orange" id="s-due">—</div>
+      <div class="stat-sub" id="s-due-sub">pendiente</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Items alquilados</div>
+      <div class="stat-value blue" id="s-items">—</div>
+      <div class="stat-sub">unidades totales</div>
+    </div>
+  </div>
+
+  <div id="progress-wrap" style="display:none;">
+    <div class="progress-bg"><div class="progress-bar" id="progress-bar" style="width:0%"></div></div>
+  </div>
+
+  <div id="error-banner" class="error-banner"></div>
+
+  <div class="table-wrap">
+    <div class="state-msg" id="empty-state">
+      <span class="big">⊗</span>
+      Selecciona fechas y presiona "Cargar"
+    </div>
+    <table id="orders-table" style="display:none;">
+      <thead>
+        <tr>
+          <th onclick="sortBy('number',this)">#</th>
+          <th onclick="sortBy('customer_name',this)">Cliente</th>
+          <th onclick="sortBy('status',this)">Estado</th>
+          <th onclick="sortBy('starts_at',this)">Desde</th>
+          <th onclick="sortBy('stops_at',this)">Hasta</th>
+          <th onclick="sortBy('item_count',this)">Items</th>
+          <th onclick="sortBy('price_in_cents',this)" style="text-align:right">Precio</th>
+          <th onclick="sortBy('grand_total_in_cents',this)" style="text-align:right">Total</th>
+          <th onclick="sortBy('to_be_paid_in_cents',this)" style="text-align:right">Por cobrar</th>
+          <th onclick="sortBy('payment_status',this)">Pago</th>
+        </tr>
+      </thead>
+      <tbody id="orders-tbody"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ══ COMING SOON PANELS ══ -->
+<div id="src-sheets" style="display:none;">
+  <div class="coming-soon">
+    <div class="cs-icon">⊞</div>
+    <h2>Google Sheets — próximamente</h2>
+    <p>Conecta tus hojas de cálculo para ver datos de control de gestión, presupuestos o cualquier tabla directamente en este dashboard.</p>
+    <div class="cs-tags">
+      <span class="cs-tag">Google Sheets API</span>
+      <span class="cs-tag">Service Account</span>
+      <span class="cs-tag">Vercel /api/sheets</span>
+    </div>
+  </div>
+</div>
+
+<div id="src-stripe" style="display:none;">
+  <div class="coming-soon">
+    <div class="cs-icon">⊟</div>
+    <h2>Stripe — próximamente</h2>
+    <p>Pagos, suscripciones y métricas de revenue desde Stripe, integrados en el mismo panel.</p>
+    <div class="cs-tags">
+      <span class="cs-tag">Stripe API</span>
+      <span class="cs-tag">Vercel /api/stripe</span>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── CONFIG ─────────────────────────────────────────────────────────────────
+// Apunta a tu Vercel deployment. En desarrollo local usar '/api/orders'.
+// En producción (GitHub Pages): reemplaza con tu URL de Vercel.
+const API_BASE = window.location.hostname === 'localhost'
+  ? ''
+  : 'https://TU-PROYECTO.vercel.app'   // ← cambia esto después del deploy
+
+// ── STATE ──────────────────────────────────────────────────────────────────
+let allOrders = []
+let included  = []
+let sortCol   = 'number'
+let sortDir   = -1
+
+// ── INIT ───────────────────────────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', () => {
+  setThisMonth()
+})
+
+// ── SOURCES ────────────────────────────────────────────────────────────────
+function switchSource(src) {
+  document.querySelectorAll('.src-tab').forEach(t => t.classList.toggle('active', t.dataset.src === src))
+  ;['booqable','sheets','stripe'].forEach(s => {
+    document.getElementById(`src-${s}`).style.display = s === src ? 'block' : 'none'
+  })
+}
+
+// ── DATE HELPERS ───────────────────────────────────────────────────────────
+function setThisMonth() {
+  const now = new Date(), y = now.getFullYear(), m = now.getMonth()
+  document.getElementById('f-from').value = `${y}-${pad(m+1)}-01`
+  document.getElementById('f-till').value = `${y}-${pad(m+1)}-${new Date(y,m+1,0).getDate()}`
+}
+function setToday() {
+  const d = new Date().toISOString().slice(0,10)
+  document.getElementById('f-from').value = d
+  document.getElementById('f-till').value = d
+}
+function pad(n) { return String(n).padStart(2,'0') }
+
+// ── FETCH ──────────────────────────────────────────────────────────────────
+async function loadOrders() {
+  const fromDate = document.getElementById('f-from').value
+  const tillDate = document.getElementById('f-till').value
+  if (!fromDate || !tillDate) { alert('Selecciona rango de fechas'); return }
+
+  const btn = document.getElementById('btn-load')
+  btn.disabled = true; btn.textContent = '...'
+  setStatus('idle', 'cargando...')
+  document.getElementById('progress-wrap').style.display = 'block'
+  document.getElementById('error-banner').style.display = 'none'
+  hideTable()
+  allOrders = []; included = []
+
+  const fromISO = `${fromDate}T00:00:00.000Z`
+  const tillISO = `${tillDate}T23:59:59.999Z`
+
+  try {
+    let page = 1, total = Infinity
+    while (allOrders.length < total) {
+      setProgress(Math.min(allOrders.length / Math.max(total,1) * 90, 85))
+
+      const url = `${API_BASE}/api/orders?from=${encodeURIComponent(fromISO)}&till=${encodeURIComponent(tillISO)}&page=${page}&size=30`
+      const res = await fetch(url)
+
+      if (res.status === 401) {
+        showError('Sesión expirada — actualiza BOOQABLE_SESSION en las variables de entorno de Vercel')
+        return
+      }
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        throw new Error(err.error || `HTTP ${res.status}`)
+      }
+
+      const data = await res.json()
+      const orders = data.orders || []
+      const meta   = data.meta   || {}
+      total = meta?.stats?.total?.count ?? orders.length
+      allOrders.push(...orders)
+      if (page === 1) included = data.included || []
+      if (orders.length < 30) break
+      page++
+    }
+
+    setProgress(100)
+    renderAll()
+    setStatus('ok', `${allOrders.length} órdenes — ${new Date().toLocaleTimeString('es')}`)
+  } catch(e) {
+    console.error(e)
+    showError(`Error: ${e.message}`)
+    setStatus('error', e.message)
+  } finally {
+    setTimeout(() => { document.getElementById('progress-wrap').style.display = 'none' }, 400)
+    btn.disabled = false; btn.textContent = '↓ Cargar'
+  }
+}
+
+// ── RENDER ─────────────────────────────────────────────────────────────────
+function renderAll() {
+  const sf = document.getElementById('f-status').value
+  const pf = document.getElementById('f-payment').value
+
+  let flat = allOrders.map(o => ({
+    ...o.attributes,
+    order_id: o.id,
+    customer_name: resolveCustomer(o),
+  })).filter(o => {
+    if (sf && o.status         !== sf) return false
+    if (pf && o.payment_status !== pf) return false
+    return true
+  })
+
+  flat.sort((a,b) => {
+    let va = a[sortCol] ?? '', vb = b[sortCol] ?? ''
+    if (typeof va === 'string') va = va.toLowerCase()
+    if (typeof vb === 'string') vb = vb.toLowerCase()
+    return va < vb ? sortDir : va > vb ? -sortDir : 0
+  })
+
+  const invoiced   = flat.reduce((s,o) => s + (o.price_in_cents       || 0), 0) / 100
+  const grandTotal = flat.reduce((s,o) => s + (o.grand_total_in_cents  || 0), 0) / 100
+  const due        = flat.reduce((s,o) => s + (o.to_be_paid_in_cents   || 0), 0) / 100
+  const items      = flat.reduce((s,o) => s + (o.item_count || 0), 0)
+
+  document.getElementById('s-total').textContent      = flat.length
+  document.getElementById('s-total-sub').textContent  = sf || 'todos los estados'
+  document.getElementById('s-invoiced').textContent   = fmtCHF(invoiced)
+  document.getElementById('s-invoiced-sub').textContent = `grand total: ${fmtCHF(grandTotal)}`
+  document.getElementById('s-paid').textContent       = fmtCHF(grandTotal - due)
+  document.getElementById('s-paid-sub').textContent   = `de CHF ${fmtCHF(grandTotal)}`
+  document.getElementById('s-due').textContent        = fmtCHF(due)
+  document.getElementById('s-due-sub').textContent    = due > 0
+    ? `${flat.filter(o=>o.to_be_paid_in_cents>0).length} órdenes pendientes`
+    : 'todo cobrado ✓'
+  document.getElementById('s-items').textContent      = items
+
+  document.getElementById('orders-tbody').innerHTML = flat.map(o => {
+    const dueColor = o.to_be_paid_in_cents > 0 ? 'color:var(--warn)' : 'color:var(--muted)'
+    return `<tr>
+      <td class="cell-num">#${o.number || o.order_id?.slice(0,6)}</td>
+      <td class="cell-customer" title="${o.customer_name}">${o.customer_name}</td>
+      <td><span class="badge ${o.status||''}">${o.status||'—'}</span></td>
+      <td class="cell-date">${fmtDate(o.starts_at)}</td>
+      <td class="cell-date">${fmtDate(o.stops_at)}</td>
+      <td style="font-family:var(--mono);font-size:12px;color:var(--accent2)">${o.item_count??'—'}</td>
+      <td class="cell-chf" style="color:var(--muted)">${fmtCHF((o.price_in_cents||0)/100)}</td>
+      <td class="cell-chf">${fmtCHF((o.grand_total_in_cents||0)/100)}</td>
+      <td class="cell-chf" style="${dueColor}">${fmtCHF((o.to_be_paid_in_cents||0)/100)}</td>
+      <td><span class="pay-badge ${o.payment_status||''}">${(o.payment_status||'—').replace('_',' ')}</span></td>
+    </tr>`
+  }).join('')
+
+  const hasData = flat.length > 0
+  document.getElementById('orders-table').style.display = hasData ? 'table' : 'none'
+  document.getElementById('empty-state').style.display  = hasData ? 'none'  : 'block'
+  if (!hasData) document.getElementById('empty-state').innerHTML = `<span class="big">⊘</span>Sin órdenes para este filtro`
+}
+
+function resolveCustomer(order) {
+  const rel = order.relationships?.customer?.data
+  if (!rel) return '—'
+  const f = included.find(i => i.type === 'customers' && i.id === rel.id)
+  return f?.attributes?.name || '—'
+}
+
+function hideTable() {
+  document.getElementById('orders-table').style.display = 'none'
+  document.getElementById('empty-state').style.display  = 'block'
+  document.getElementById('empty-state').innerHTML = `<span class="spinner"></span>Cargando órdenes...`
+}
+
+function showError(msg) {
+  const b = document.getElementById('error-banner')
+  b.textContent = msg
+  b.style.display = 'block'
+  document.getElementById('empty-state').style.display = 'none'
+  document.getElementById('orders-table').style.display = 'none'
+  setStatus('error', 'error')
+}
+
+function setProgress(pct) { document.getElementById('progress-bar').style.width = pct + '%' }
+function setStatus(type, msg) {
+  document.getElementById('status-pill').className = `pill ${type}`
+  document.getElementById('status-text').textContent = msg
+}
+
+function sortBy(col, th) {
+  sortDir = sortCol === col ? sortDir * -1 : -1
+  sortCol = col
+  document.querySelectorAll('th').forEach(t => t.classList.remove('sorted'))
+  if (th) th.classList.add('sorted')
+  if (allOrders.length) renderAll()
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('f-status').addEventListener('change',  () => { if (allOrders.length) renderAll() })
+  document.getElementById('f-payment').addEventListener('change', () => { if (allOrders.length) renderAll() })
+})
+
+function fmtCHF(n) {
+  return (n || 0).toLocaleString('de-CH', { minimumFractionDigits:2, maximumFractionDigits:2 })
+}
+function fmtDate(iso) {
+  if (!iso) return '—'
+  const d = new Date(iso)
+  return `${pad(d.getDate())}.${pad(d.getMonth()+1)} ${pad(d.getHours())}:${pad(d.getMinutes())}`
+}
+</script>
+</body>
+</html>
