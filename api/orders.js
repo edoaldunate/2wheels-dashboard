@@ -1,12 +1,9 @@
 /**
  * Vercel API Route — /api/orders
- * Proxy hacia Booqable usando Access Token permanente.
- *
- * Variables de entorno en Vercel (se configuran una sola vez, nunca expiran):
+ * Variables de entorno en Vercel (una sola vez, nunca expiran):
  *   BOOQABLE_TOKEN     → Access Token de Booqable
  *   BOOQABLE_SUBDOMAIN → 2wheels-rental
  */
-
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*')
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS')
@@ -14,31 +11,24 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end()
   if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' })
 
-  const {
-    BOOQABLE_TOKEN,
-    BOOQABLE_SUBDOMAIN = '2wheels-rental',
-  } = process.env
+  const { BOOQABLE_TOKEN, BOOQABLE_SUBDOMAIN = '2wheels-rental' } = process.env
+  if (!BOOQABLE_TOKEN) return res.status(500).json({ error: 'Falta BOOQABLE_TOKEN en Vercel env vars' })
 
-  if (!BOOQABLE_TOKEN) {
-    return res.status(500).json({ error: 'Falta BOOQABLE_TOKEN en las variables de entorno de Vercel' })
-  }
+  const { from, till, page = '1', size = '30' } = req.query
 
-  const {
-    from = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString(),
-    till = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0, 23, 59, 59).toISOString(),
-    page = '1',
-    size = '30',
-  } = req.query
+  const now = new Date()
+  const fromISO = from || new Date(now.getFullYear(), now.getMonth(), 1).toISOString()
+  const tillISO = till || new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59).toISOString()
 
   const p = new URLSearchParams()
   p.append('sort', '-number')
   p.append('filter[conditions][operator]', 'or')
   p.append('filter[conditions][attributes][][operator]', 'and')
-  p.append('filter[conditions][attributes][][attributes][][starts_at][gte]', from)
-  p.append('filter[conditions][attributes][][attributes][][starts_at][lte]', till)
+  p.append('filter[conditions][attributes][][attributes][][starts_at][gte]', fromISO)
+  p.append('filter[conditions][attributes][][attributes][][starts_at][lte]', tillISO)
   p.append('filter[conditions][attributes][][operator]', 'and')
-  p.append('filter[conditions][attributes][][attributes][][stops_at][gte]', from)
-  p.append('filter[conditions][attributes][][attributes][][stops_at][lte]', till)
+  p.append('filter[conditions][attributes][][attributes][][stops_at][gte]', fromISO)
+  p.append('filter[conditions][attributes][][attributes][][stops_at][lte]', tillISO)
   p.append('filter[statuses][not_eq][]', 'canceled')
   p.append('filter[statuses][not_eq][]', 'archived')
   p.append('filter[statuses][not_eq][]', 'new')
@@ -47,34 +37,57 @@ export default async function handler(req, res) {
   p.append('stats[price_in_cents][]', 'sum')
   p.append('stats[item_count][]', 'sum')
   p.append('stats[total]', 'count')
-  p.append('include', 'customer,start_location,stop_location')
+  p.append('include', 'customer')
   p.append('page[number]', page)
   p.append('page[size]', size)
 
-  const booqableURL = `https://${BOOQABLE_SUBDOMAIN}.booqable.com/api/boomerang/orders?${p}`
+  const url = `https://${BOOQABLE_SUBDOMAIN}.booqable.com/api/boomerang/orders?${p}`
 
   try {
-    const response = await fetch(booqableURL, {
+    const r = await fetch(url, {
       headers: {
         'Authorization': `Bearer ${BOOQABLE_TOKEN}`,
         'Content-Type': 'application/json',
       },
     })
 
-    if (response.status === 401 || response.status === 403) {
-      return res.status(401).json({ error: 'Token inválido — revisa BOOQABLE_TOKEN en Vercel' })
+    if (r.status === 401 || r.status === 403) {
+      return res.status(401).json({ error: 'Token inválido' })
     }
+    if (!r.ok) return res.status(r.status).json({ error: `Booqable error ${r.status}` })
 
-    if (!response.ok) {
-      return res.status(response.status).json({ error: `Booqable respondió ${response.status}` })
-    }
+    const raw = await r.json()
 
-    const data = await response.json()
+    // La API boomerang devuelve JSON:API con data[] e included[]
+    // Normalizamos a un formato simple para el frontend
+    const included = raw.included || []
+
+    const orders = (raw.data || []).map(item => {
+      const a = item.attributes || {}
+      const custRel = item.relationships?.customer?.data
+      const custObj = custRel ? included.find(i => i.type === 'customers' && i.id === custRel.id) : null
+      return {
+        id:                   item.id,
+        number:               a.number,
+        status:               a.status,
+        payment_status:       a.payment_status,
+        customer_name:        custObj?.attributes?.name || '—',
+        starts_at:            a.starts_at,
+        stops_at:             a.stops_at,
+        item_count:           a.item_count,
+        price_in_cents:       a.price_in_cents       || 0,
+        grand_total_in_cents: a.grand_total_in_cents  || 0,
+        to_be_paid_in_cents:  a.to_be_paid_in_cents   || 0,
+      }
+    })
+
+    const meta = raw.meta || {}
+
     res.setHeader('Cache-Control', 's-maxage=60, stale-while-revalidate')
-    return res.status(200).json(data)
+    return res.status(200).json({ orders, meta })
 
   } catch (err) {
-    console.error('[orders proxy]', err)
+    console.error('[orders]', err)
     return res.status(500).json({ error: err.message })
   }
 }
