@@ -134,9 +134,10 @@ export default async function handler(req, res) {
           if (!oid) continue
           if (!linesMap[oid]) linesMap[oid] = []
           if (a.title) {
-            // owner_id es el product_group ID cuando owner_type === 'ProductGroup'
-            const ownerId = a.owner_type === 'ProductGroup' ? a.owner_id : null
-            linesMap[oid].push({ title: a.title, quantity: a.quantity || 1, owner_id: ownerId })
+            // owner_type puede ser 'ProductGroup' o 'product_groups' según Booqable
+            const isProductGroup = a.owner_type === 'ProductGroup' || a.owner_type === 'product_groups'
+            const ownerId = isProductGroup ? a.owner_id : null
+            linesMap[oid].push({ title: a.title, quantity: a.quantity || 1, owner_id: ownerId, _owner_type: a.owner_type })
           }
         }
       }
@@ -220,9 +221,17 @@ export default async function handler(req, res) {
       }
     })
 
+    // DEBUG
+    const allLines = Object.values(linesMap).flat()
+    const _debug = {
+      ownerTypes: [...new Set(allLines.map(l => l._owner_type))],
+      ownerIdSample: allLines.slice(0, 3).map(l => ({ title: l.title, owner_type: l._owner_type, owner_id: l.owner_id })),
+      pgCollectionsSize: Object.keys(pgCollections).length,
+    }
+
     // Cache más largo para rangos grandes (reduce re-fetches)
     res.setHeader('Cache-Control', 's-maxage=120, stale-while-revalidate=60')
-    return res.status(200).json({ orders, meta: firstMeta || {} })
+    return res.status(200).json({ orders, meta: firstMeta || {}, _debug })
 
   } catch (err) {
     console.error('[orders]', err)
