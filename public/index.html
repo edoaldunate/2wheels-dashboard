@@ -47,6 +47,15 @@
   .btn-ghost{background:transparent;border:1px solid var(--border);color:var(--muted);font-family:var(--mono);font-size:12px;padding:7px 14px;border-radius:6px;cursor:pointer;transition:border-color .15s,color .15s}
   .btn-ghost:hover{border-color:var(--accent2);color:var(--accent2)}
 
+  /* Checkbox Excluir */
+  .exclude-wrap{display:flex;align-items:center;gap:6px;cursor:pointer;user-select:none}
+  .exclude-wrap input[type="checkbox"]{appearance:none;-webkit-appearance:none;width:14px;height:14px;border:1px solid var(--border);border-radius:3px;background:var(--surface2);cursor:pointer;position:relative;transition:border-color .15s,background .15s;flex-shrink:0}
+  .exclude-wrap input[type="checkbox"]:checked{background:var(--danger);border-color:var(--danger)}
+  .exclude-wrap input[type="checkbox"]:checked::after{content:'✕';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:9px;color:#0e0f11;font-weight:700;line-height:1}
+  .exclude-wrap input[type="checkbox"]:disabled{opacity:.35;cursor:not-allowed}
+  .exclude-wrap span{font-size:11px;font-family:var(--mono);color:var(--muted);text-transform:uppercase;letter-spacing:.06em;transition:color .15s}
+  .exclude-wrap input[type="checkbox"]:checked + span{color:var(--danger)}
+
   .stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:1px;background:var(--border);border-bottom:1px solid var(--border)}
   .stat-card{background:var(--surface);padding:20px 24px;display:flex;flex-direction:column;gap:6px;transition:background .15s}
   .stat-card:hover{background:var(--surface2)}
@@ -157,6 +166,10 @@
       <select id="f-product">
         <option value="">Todos los productos</option>
       </select>
+      <label class="exclude-wrap" title="Excluir el producto seleccionado en vez de filtrarlo">
+        <input type="checkbox" id="f-product-exclude" disabled onchange="if(allOrders.length) renderAll()">
+        <span>Excluir</span>
+      </label>
     </div>
   </div>
 
@@ -211,7 +224,14 @@ window.addEventListener('DOMContentLoaded', () => {
   setThisMonth()
   document.getElementById('f-status').addEventListener('change',  () => { if (allOrders.length) renderAll() })
   document.getElementById('f-payment').addEventListener('change', () => { if (allOrders.length) renderAll() })
-  document.getElementById('f-product').addEventListener('change', () => { if (allOrders.length) renderAll() })
+  document.getElementById('f-product').addEventListener('change', () => {
+    // Habilitar/deshabilitar el checkbox según si hay producto seleccionado
+    const sel = document.getElementById('f-product')
+    const chk = document.getElementById('f-product-exclude')
+    chk.disabled = !sel.value
+    if (!sel.value) chk.checked = false
+    if (allOrders.length) renderAll()
+  })
 })
 
 function switchSource(src) {
@@ -296,7 +316,6 @@ async function loadOrders() {
 }
 
 function populateProductFilter() {
-  // Recopilar todos los títulos únicos de productos
   const titles = new Set()
   allOrders.forEach(o => (o.lines || []).forEach(l => { if (l.title) titles.add(l.title) }))
   const sel = document.getElementById('f-product')
@@ -308,17 +327,27 @@ function populateProductFilter() {
     sel.appendChild(opt)
   })
   if (current) sel.value = current
+  // Sincronizar estado del checkbox
+  const chk = document.getElementById('f-product-exclude')
+  chk.disabled = !sel.value
+  if (!sel.value) chk.checked = false
 }
 
 function renderAll() {
-  const sf = document.getElementById('f-status').value
-  const pf = document.getElementById('f-payment').value
+  const sf  = document.getElementById('f-status').value
+  const pf  = document.getElementById('f-payment').value
   const prf = document.getElementById('f-product').value
+  const exc = document.getElementById('f-product-exclude').checked
 
   let flat = allOrders.filter(o => {
     if (sf && o.status !== sf) return false
     if (pf && o.payment_status !== pf) return false
-    if (prf && !(o.lines || []).some(l => l.title === prf)) return false
+    if (prf) {
+      const hasProduct = (o.lines || []).some(l => l.title === prf)
+      // exc=true → excluir ese producto (mostrar órdenes que NO lo tienen)
+      // exc=false → solo mostrar órdenes que SÍ lo tienen
+      if (exc ? hasProduct : !hasProduct) return false
+    }
     return true
   })
 
