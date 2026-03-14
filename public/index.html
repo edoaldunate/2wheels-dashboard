@@ -140,8 +140,11 @@
       <option value="overpaid">Overpaid</option>
     </select>
     <div class="sep"></div>
-    <button class="btn-ghost" onclick="setThisMonth()">Este mes</button>
     <button class="btn-ghost" onclick="setToday()">Hoy</button>
+    <button class="btn-ghost" onclick="setThisMonth()">Este mes</button>
+    <button class="btn-ghost" onclick="setLastMonth()">Mes pasado</button>
+    <button class="btn-ghost" onclick="setThisQuarter()">Trimestre</button>
+    <button class="btn-ghost" onclick="setThisYear()">Este año</button>
     <button class="btn" id="btn-load" onclick="loadOrders()">↓ Cargar</button>
   </div>
 
@@ -204,17 +207,33 @@ function switchSource(src) {
   })
 }
 
-function setThisMonth() {
-  const n = new Date(), y = n.getFullYear(), m = n.getMonth()
-  document.getElementById('f-from').value = y+'-'+pad(m+1)+'-01'
-  document.getElementById('f-till').value = y+'-'+pad(m+1)+'-'+new Date(y,m+1,0).getDate()
-}
-function setToday() {
-  const d = new Date().toISOString().slice(0,10)
-  document.getElementById('f-from').value = d
-  document.getElementById('f-till').value = d
-}
 function pad(n){ return String(n).padStart(2,'0') }
+function fmt(d){ return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()) }
+function setDates(from,till){
+  document.getElementById('f-from').value = from
+  document.getElementById('f-till').value = till
+}
+function setToday(){
+  const d = fmt(new Date()); setDates(d,d)
+}
+function setThisMonth(){
+  const n=new Date(),y=n.getFullYear(),m=n.getMonth()
+  setDates(y+'-'+pad(m+1)+'-01', y+'-'+pad(m+1)+'-'+new Date(y,m+1,0).getDate())
+}
+function setLastMonth(){
+  const n=new Date(),y=n.getFullYear(),m=n.getMonth()
+  const ly=m===0?y-1:y, lm=m===0?12:m
+  setDates(ly+'-'+pad(lm)+'-01', ly+'-'+pad(lm)+'-'+new Date(ly,lm,0).getDate())
+}
+function setThisQuarter(){
+  const n=new Date(),y=n.getFullYear(),m=n.getMonth()
+  const qs=Math.floor(m/3)*3, qe=qs+2
+  setDates(y+'-'+pad(qs+1)+'-01', y+'-'+pad(qe+1)+'-'+new Date(y,qe+1,0).getDate())
+}
+function setThisYear(){
+  const y=new Date().getFullYear()
+  setDates(y+'-01-01', y+'-12-31')
+}
 
 async function loadOrders() {
   const fromDate = document.getElementById('f-from').value
