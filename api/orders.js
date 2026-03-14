@@ -134,7 +134,9 @@ export default async function handler(req, res) {
           if (!oid) continue
           if (!linesMap[oid]) linesMap[oid] = []
           if (a.title) {
-            linesMap[oid].push({ title: a.title, quantity: a.quantity || 1, owner_id: a.owner_id || null })
+            const ownerRel = line.relationships?.owner?.data
+            const ownerId = ownerRel ? ownerRel.id : null
+            linesMap[oid].push({ title: a.title, quantity: a.quantity || 1, owner_id: ownerId })
           }
         }
       }
@@ -145,6 +147,7 @@ export default async function handler(req, res) {
 
     // ── 3. Traer collections con sus product_groups ───────────────────────
     const pgCollections = {}  // productGroupId → string[]
+    let _debugCollRaw = null
     try {
       const collRes = await fetchWithRetry(
         `${base}/collections?include=product_groups&fields[collections]=id,name&fields[product_groups]=id&page[size]=100`,
@@ -152,17 +155,20 @@ export default async function handler(req, res) {
       )
       if (collRes && collRes.ok) {
         const collRaw = await collRes.json()
+        _debugCollRaw = { data: collRaw.data?.map(c => ({ id: c.id, name: c.attributes?.name, pgRels: c.relationships?.product_groups?.data })), included_count: collRaw.included?.length }
         for (const coll of (collRaw.data || [])) {
           const collName = coll.attributes?.name
-          if (!collName || collName === 'All') continue  // excluir la colección sistema "All"
+          if (!collName || collName === 'All') continue
           const pgRels = coll.relationships?.product_groups?.data || []
           for (const pg of pgRels) {
             if (!pgCollections[pg.id]) pgCollections[pg.id] = []
             if (!pgCollections[pg.id].includes(collName)) pgCollections[pg.id].push(collName)
           }
         }
+      } else {
+        _debugCollRaw = { error: collRes?.status }
       }
-    } catch(_) { /* no bloquea si falla */ }
+    } catch(e) { _debugCollRaw = { exception: e.message } }
 
     // ── 4. Normalizar y devolver ──────────────────────────────────────────
     // Deduplicar included (puede haber customers repetidos entre páginas)
@@ -209,7 +215,7 @@ export default async function handler(req, res) {
 
     // Cache más largo para rangos grandes (reduce re-fetches)
     res.setHeader('Cache-Control', 's-maxage=120, stale-while-revalidate=60')
-    return res.status(200).json({ orders, meta: firstMeta || {}, _debug_pgCollections: pgCollections })
+    return res.status(200).json({ orders, meta: firstMeta || {}, _debug_pgCollections: pgCollections, _debug_collRaw: _debugCollRaw })
 
   } catch (err) {
     console.error('[orders]', err)
