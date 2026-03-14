@@ -122,7 +122,9 @@ export default async function handler(req, res) {
 
       const lp = new URLSearchParams()
       batchIds.forEach(id => lp.append('filter[order_id][]', id))
-      lp.append('fields[lines]', 'title,quantity,order_id,price_in_cents,owner_id,owner_type')
+      lp.append('fields[lines]', 'title,quantity,order_id,price_in_cents')
+      lp.append('include', 'owner')
+      lp.append('fields[product_groups]', 'id')
       lp.append('page[size]', '200')
 
       const linesRes = await fetchWithRetry(`${base}/lines?${lp}`, { headers })
