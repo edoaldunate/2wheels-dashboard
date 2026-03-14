@@ -28,7 +28,6 @@
   .dot{width:6px;height:6px;border-radius:50%;background:currentColor;animation:pulse 1.5s ease-in-out infinite}
   @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
 
-  /* Pestañas fuente */
   .sources{border-bottom:1px solid var(--border);padding:0 32px;display:flex}
   .src-tab{font-family:var(--mono);font-size:12px;padding:14px 20px;cursor:pointer;border-bottom:2px solid transparent;color:var(--muted);transition:color .15s,border-color .15s;display:flex;align-items:center;gap:8px}
   .src-tab:hover{color:var(--text)}
@@ -37,13 +36,11 @@
   .src-tag.live{background:rgba(71,255,156,.15);color:var(--ok);border:1px solid rgba(71,255,156,.3)}
   .src-tag.soon{background:rgba(107,114,128,.12);color:var(--muted);border:1px solid rgba(107,114,128,.2)}
 
-  /* Sub-pestañas Datos / Gráficos */
   .sub-tabs{padding:0 32px;display:flex;border-bottom:1px solid var(--border);background:var(--surface)}
   .sub-tab{font-family:var(--mono);font-size:11px;padding:10px 18px;cursor:pointer;border-bottom:2px solid transparent;color:var(--muted);transition:color .15s,border-color .15s;letter-spacing:.04em;text-transform:uppercase}
   .sub-tab:hover{color:var(--text)}
   .sub-tab.active{color:var(--accent2);border-bottom-color:var(--accent2)}
 
-  /* Toolbar */
   .toolbar{padding:0 32px;display:flex;flex-direction:column;border-bottom:1px solid var(--border)}
   .toolbar-row{display:flex;align-items:center;gap:12px;padding:10px 0;flex-wrap:wrap}
   .toolbar-row+.toolbar-row{border-top:1px solid var(--border)}
@@ -60,10 +57,10 @@
   .btn-excel:hover{background:#1d6f42;color:#fff}
   .btn-excel:disabled{opacity:.35;cursor:not-allowed}
 
-  /* Chips producto */
-  .product-chips-row{display:flex;align-items:center;gap:8px;padding:10px 0;flex-wrap:wrap;border-top:1px solid var(--border)}
-  .product-chips-label{font-size:11px;font-family:var(--mono);color:var(--muted);text-transform:uppercase;letter-spacing:.06em;flex-shrink:0}
-  .product-chips{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+  /* Chips genéricos */
+  .chips-row{display:flex;align-items:center;gap:8px;padding:10px 0;flex-wrap:wrap;border-top:1px solid var(--border)}
+  .chips-label{font-size:11px;font-family:var(--mono);color:var(--muted);text-transform:uppercase;letter-spacing:.06em;flex-shrink:0}
+  .chips-group{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
   .pchip{font-family:var(--mono);font-size:11px;padding:4px 10px;border-radius:20px;border:1px solid var(--border);color:var(--muted);background:transparent;cursor:pointer;transition:color .15s,border-color .15s,background .15s;user-select:none;white-space:nowrap}
   .pchip:hover{border-color:var(--text);color:var(--text)}
   .pchip.include{color:var(--ok);border-color:var(--ok);background:rgba(71,255,156,.08)}
@@ -73,7 +70,6 @@
   .chips-reset{font-family:var(--mono);font-size:10px;padding:3px 8px;border-radius:20px;border:1px solid var(--border);color:var(--muted);background:transparent;cursor:pointer;opacity:.6;transition:opacity .15s}
   .chips-reset:hover{opacity:1}
 
-  /* Stats */
   .stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:1px;background:var(--border);border-bottom:1px solid var(--border)}
   .stat-card{background:var(--surface);padding:20px 24px;display:flex;flex-direction:column;gap:6px;transition:background .15s}
   .stat-card:hover{background:var(--surface2)}
@@ -85,7 +81,6 @@
   .stat-value.orange{color:var(--warn)}
   .stat-sub{font-size:11px;color:var(--muted);font-family:var(--mono)}
 
-  /* Tabla */
   .table-wrap{padding:24px 32px;overflow-x:auto}
   table{width:100%;border-collapse:collapse}
   thead tr{border-bottom:1px solid var(--border)}
@@ -111,7 +106,6 @@
   .pay-badge.overpaid{color:var(--accent2);border-color:rgba(71,200,255,.3);background:rgba(71,200,255,.08)}
   .pay-badge.partially_paid{color:#d0a0ff;border-color:rgba(208,160,255,.3);background:rgba(208,160,255,.08)}
 
-  /* Gráficos */
   .charts-wrap{padding:24px 32px;display:grid;grid-template-columns:1fr 1fr;gap:24px}
   .chart-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:20px 24px;display:flex;flex-direction:column;gap:12px}
   .chart-card.full{grid-column:1/-1}
@@ -119,7 +113,6 @@
   .chart-box{position:relative;height:260px}
   .chart-box.tall{height:320px}
 
-  /* Misc */
   .state-msg{text-align:center;padding:64px 32px;font-family:var(--mono);font-size:13px;color:var(--muted)}
   .state-msg .big{font-size:32px;margin-bottom:12px;display:block}
   .spinner{display:inline-block;width:16px;height:16px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;margin-right:8px}
@@ -150,24 +143,21 @@
   <div id="status-pill" class="pill idle"><span class="dot"></span><span id="status-text">listo</span></div>
 </header>
 
-<!-- Pestañas fuente -->
 <div class="sources">
   <div class="src-tab active" data-src="booqable" onclick="switchSource('booqable')">Booqable <span class="src-tag live">LIVE</span></div>
   <div class="src-tab" data-src="sheets" onclick="switchSource('sheets')">Google Sheets <span class="src-tag soon">PRÓXIMO</span></div>
   <div class="src-tab" data-src="stripe" onclick="switchSource('stripe')">Stripe <span class="src-tag soon">PRÓXIMO</span></div>
 </div>
 
-<!-- ===== BOOQABLE ===== -->
 <div id="src-booqable">
 
-  <!-- Sub-pestañas -->
   <div class="sub-tabs">
     <div class="sub-tab active" data-view="data" onclick="switchView('data')">Datos</div>
     <div class="sub-tab" data-view="charts" onclick="switchView('charts')">Gráficos</div>
   </div>
 
-  <!-- Toolbar compartida -->
   <div class="toolbar">
+    <!-- Fila 1: fechas + accesos rápidos -->
     <div class="toolbar-row">
       <label>Desde</label><input type="date" id="f-from">
       <label>Hasta</label><input type="date" id="f-till">
@@ -179,8 +169,9 @@
       <button class="btn-ghost" onclick="setThisYear()">Este año</button>
       <button class="btn-ghost" onclick="setLastYear()">Año pasado</button>
       <button class="btn" id="btn-load" onclick="loadOrders()">↓ Cargar</button>
-      <button class="btn-excel" id="btn-excel" onclick="exportExcel()" disabled title="Exporta los datos filtrados">⬇ Excel</button>
+      <button class="btn-excel" id="btn-excel" onclick="exportExcel()" disabled>⬇ Excel</button>
     </div>
+    <!-- Fila 2: Estado -->
     <div class="toolbar-row">
       <label>Estado</label>
       <select id="f-status">
@@ -190,23 +181,26 @@
         <option value="returned">Returned</option>
         <option value="concept">Concept</option>
       </select>
-      <label>Pago</label>
-      <select id="f-payment">
-        <option value="">Todos</option>
-        <option value="payment_due">Payment due</option>
-        <option value="partially_paid">Partially paid</option>
-        <option value="paid">Paid</option>
-        <option value="overpaid">Overpaid</option>
-      </select>
     </div>
-    <div class="product-chips-row" id="product-chips-row" style="display:none">
-      <span class="product-chips-label">Producto</span>
-      <div class="product-chips" id="product-chips"></div>
-      <button class="chips-reset" id="chips-reset" onclick="resetChips()" style="display:none">Limpiar</button>
+    <!-- Fila 3: chips Pago (siempre visibles) -->
+    <div class="chips-row">
+      <span class="chips-label">Pago</span>
+      <div class="chips-group" id="payment-chips">
+        <span class="pchip" data-pay="payment_due"   onclick="cyclePayChip(this)">Payment due</span>
+        <span class="pchip" data-pay="partially_paid" onclick="cyclePayChip(this)">Partially paid</span>
+        <span class="pchip" data-pay="paid"           onclick="cyclePayChip(this)">Paid</span>
+        <span class="pchip" data-pay="overpaid"       onclick="cyclePayChip(this)">Overpaid</span>
+      </div>
+      <button class="chips-reset" id="pay-chips-reset" onclick="resetPayChips()" style="display:none">Limpiar</button>
+    </div>
+    <!-- Fila 4: chips Producto (aparece tras cargar) -->
+    <div class="chips-row" id="product-chips-row" style="display:none">
+      <span class="chips-label">Producto</span>
+      <div class="chips-group" id="product-chips"></div>
+      <button class="chips-reset" id="chips-reset" onclick="resetProductChips()" style="display:none">Limpiar</button>
     </div>
   </div>
 
-  <!-- Stats compartidas -->
   <div class="stats-grid">
     <div class="stat-card"><div class="stat-label">Total órdenes</div><div class="stat-value yellow" id="s-total">—</div><div class="stat-sub" id="s-total-sub">sin datos</div></div>
     <div class="stat-card"><div class="stat-label">Facturado (CHF)</div><div class="stat-value yellow" id="s-invoiced">—</div><div class="stat-sub" id="s-invoiced-sub">precio bruto</div></div>
@@ -275,9 +269,8 @@
     </div>
   </div>
 
-</div><!-- /src-booqable -->
+</div>
 
-<!-- COMING SOON -->
 <div id="src-sheets" style="display:none">
   <div class="coming-soon"><div class="cs-icon">⊞</div><h2>Google Sheets — próximamente</h2><p>Conecta tus hojas de cálculo para ver datos de gestión directamente en este dashboard.</p><div class="cs-tags"><span class="cs-tag">Google Sheets API</span><span class="cs-tag">Vercel /api/sheets</span></div></div>
 </div>
@@ -292,55 +285,58 @@ let allOrders = []
 let filteredOrders = []
 let sortCol = 'number', sortDir = -1
 let currentView = 'data'
-const productStates = {}
 
-// Paleta de colores para gráficos
+// Estado chips producto: { título: null | 'include' | 'exclude' }
+const productStates = {}
+// Estado chips pago: { key: null | 'include' | 'exclude' }
+const paymentStates = {
+  payment_due: null,
+  partially_paid: null,
+  paid: null,
+  overpaid: null
+}
+
 const PALETTE = [
   '#e8ff47','#47c8ff','#47ff9c','#ffb647','#ff5f57',
   '#d0a0ff','#ff8c47','#47ffe8','#ff47b8','#a8ff47',
   '#ffdc47','#4778ff','#ff4747','#47ffa0','#c847ff'
 ]
-
-// Opciones base Chart.js dark mode
 const CHART_DEFAULTS = {
   color: '#6b7280',
   plugins: {
-    legend: { labels: { color: '#6b7280', font: { family: "'Space Mono', monospace", size: 11 }, boxWidth: 12, padding: 16 } },
+    legend: { labels: { color:'#6b7280', font:{family:"'Space Mono',monospace",size:11}, boxWidth:12, padding:16 } },
     tooltip: {
-      backgroundColor: '#1e2127', titleColor: '#e8e9ec', bodyColor: '#6b7280',
-      borderColor: '#2a2d35', borderWidth: 1,
-      callbacks: { label: ctx => ' ' + ctx.dataset.label + ': CHF ' + (ctx.parsed.y ?? ctx.parsed).toLocaleString('de-CH', {minimumFractionDigits:2, maximumFractionDigits:2}) }
+      backgroundColor:'#1e2127', titleColor:'#e8e9ec', bodyColor:'#6b7280',
+      borderColor:'#2a2d35', borderWidth:1,
+      callbacks: { label: ctx => ' '+ctx.dataset.label+': CHF '+(ctx.parsed.y??ctx.parsed).toLocaleString('de-CH',{minimumFractionDigits:2,maximumFractionDigits:2}) }
     }
   },
   scales: {
-    x: { ticks: { color: '#6b7280', font: { family: "'Space Mono', monospace", size: 10 } }, grid: { color: '#2a2d35' } },
-    y: { ticks: { color: '#6b7280', font: { family: "'Space Mono', monospace", size: 10 }, callback: v => 'CHF '+v.toLocaleString('de-CH') }, grid: { color: '#2a2d35' } }
+    x: { ticks:{color:'#6b7280',font:{family:"'Space Mono',monospace",size:10}}, grid:{color:'#2a2d35'} },
+    y: { ticks:{color:'#6b7280',font:{family:"'Space Mono',monospace",size:10},callback:v=>'CHF '+v.toLocaleString('de-CH')}, grid:{color:'#2a2d35'} }
   }
 }
-
 const chartInstances = {}
 
 window.addEventListener('DOMContentLoaded', () => {
   setThisMonth()
-  document.getElementById('f-status').addEventListener('change',  () => { if (allOrders.length) renderAll() })
-  document.getElementById('f-payment').addEventListener('change', () => { if (allOrders.length) renderAll() })
+  document.getElementById('f-status').addEventListener('change', () => { if(allOrders.length) renderAll() })
 })
 
-// ── Navegación ──────────────────────────────────────────────
+// ── Navegación ───────────────────────────────────────────────
 
 function switchSource(src) {
-  document.querySelectorAll('.src-tab').forEach(t => t.classList.toggle('active', t.dataset.src === src))
+  document.querySelectorAll('.src-tab').forEach(t => t.classList.toggle('active', t.dataset.src===src))
   ;['booqable','sheets','stripe'].forEach(s => {
-    document.getElementById('src-'+s).style.display = s === src ? 'block' : 'none'
+    document.getElementById('src-'+s).style.display = s===src ? 'block' : 'none'
   })
 }
-
 function switchView(view) {
   currentView = view
-  document.querySelectorAll('.sub-tab').forEach(t => t.classList.toggle('active', t.dataset.view === view))
-  document.getElementById('view-data').style.display   = view === 'data'   ? 'block' : 'none'
-  document.getElementById('view-charts').style.display = view === 'charts' ? 'block' : 'none'
-  if (view === 'charts' && filteredOrders.length) renderCharts(filteredOrders)
+  document.querySelectorAll('.sub-tab').forEach(t => t.classList.toggle('active', t.dataset.view===view))
+  document.getElementById('view-data').style.display   = view==='data'   ? 'block' : 'none'
+  document.getElementById('view-charts').style.display = view==='charts' ? 'block' : 'none'
+  if(view==='charts' && filteredOrders.length) renderCharts(filteredOrders)
 }
 
 // ── Fechas ───────────────────────────────────────────────────
@@ -360,38 +356,37 @@ function setLastYear(){ const y=new Date().getFullYear()-1; setDates(y+'-01-01',
 async function loadOrders() {
   const fromDate = document.getElementById('f-from').value
   const tillDate = document.getElementById('f-till').value
-  if (!fromDate || !tillDate) { alert('Selecciona rango de fechas'); return }
+  if(!fromDate||!tillDate){ alert('Selecciona rango de fechas'); return }
 
   const btn = document.getElementById('btn-load')
-  btn.disabled = true; btn.textContent = '...'
-  document.getElementById('btn-excel').disabled = true
+  btn.disabled=true; btn.textContent='...'
+  document.getElementById('btn-excel').disabled=true
   setStatus('idle','cargando...')
-  document.getElementById('progress-wrap').style.display = 'block'
-  document.getElementById('error-banner').style.display = 'none'
-  hideTable(); allOrders = []
+  document.getElementById('progress-wrap').style.display='block'
+  document.getElementById('error-banner').style.display='none'
+  hideTable(); allOrders=[]
 
-  const fromISO = fromDate+'T00:00:00.000Z', tillISO = tillDate+'T23:59:59.999Z'
-
+  const fromISO=fromDate+'T00:00:00.000Z', tillISO=tillDate+'T23:59:59.999Z'
   try {
     let page=1, total=Infinity
-    while (allOrders.length < total) {
+    while(allOrders.length<total){
       setProgress(Math.min(allOrders.length/Math.max(total,1)*90,85))
-      const url = `${API_BASE}/api/orders?from=${encodeURIComponent(fromISO)}&till=${encodeURIComponent(tillISO)}&page=${page}&size=30`
-      const res = await fetch(url)
-      if (res.status===401){ showError('Token inválido — revisa BOOQABLE_TOKEN en Vercel'); return }
-      if (!res.ok){ const e=await res.json().catch(()=>({})); throw new Error(e.error||'HTTP '+res.status) }
-      const data = await res.json()
-      const orders = data.orders||[], meta=data.meta||{}
-      total = meta?.stats?.total?.count ?? orders.length
+      const url=`${API_BASE}/api/orders?from=${encodeURIComponent(fromISO)}&till=${encodeURIComponent(tillISO)}&page=${page}&size=30`
+      const res=await fetch(url)
+      if(res.status===401){ showError('Token inválido — revisa BOOQABLE_TOKEN en Vercel'); return }
+      if(!res.ok){ const e=await res.json().catch(()=>({})); throw new Error(e.error||'HTTP '+res.status) }
+      const data=await res.json()
+      const orders=data.orders||[], meta=data.meta||{}
+      total=meta?.stats?.total?.count??orders.length
       allOrders.push(...orders)
-      if (orders.length<30) break
+      if(orders.length<30) break
       page++
     }
     setProgress(100)
     populateProductChips()
     renderAll()
     setStatus('ok', allOrders.length+' órdenes — '+new Date().toLocaleTimeString('es'))
-  } catch(e) {
+  } catch(e){
     console.error(e); showError('Error: '+e.message); setStatus('error',e.message)
   } finally {
     setTimeout(()=>{ document.getElementById('progress-wrap').style.display='none' },400)
@@ -399,39 +394,60 @@ async function loadOrders() {
   }
 }
 
-// ── Chips producto ───────────────────────────────────────────
+// ── Chips PAGO ───────────────────────────────────────────────
+
+function cyclePayChip(chip) {
+  const key = chip.dataset.pay
+  const cur = paymentStates[key]
+  const next = cur===null ? 'include' : cur==='include' ? 'exclude' : null
+  paymentStates[key] = next
+  chip.className = 'pchip' + (next ? ' '+next : '')
+  syncPayResetBtn()
+  if(allOrders.length) renderAll()
+}
+function resetPayChips() {
+  Object.keys(paymentStates).forEach(k => paymentStates[k]=null)
+  document.querySelectorAll('#payment-chips .pchip').forEach(c => c.className='pchip')
+  syncPayResetBtn()
+  if(allOrders.length) renderAll()
+}
+function syncPayResetBtn() {
+  const active = Object.values(paymentStates).some(v=>v!==null)
+  document.getElementById('pay-chips-reset').style.display = active ? 'inline-block' : 'none'
+}
+
+// ── Chips PRODUCTO ───────────────────────────────────────────
 
 function populateProductChips() {
   const titles = new Set()
   allOrders.forEach(o=>(o.lines||[]).forEach(l=>{ if(l.title) titles.add(l.title) }))
   Object.keys(productStates).forEach(k=>{ if(!titles.has(k)) delete productStates[k] })
   const container = document.getElementById('product-chips')
-  container.innerHTML = ''
+  container.innerHTML=''
   Array.from(titles).sort().forEach(title => {
     if(!(title in productStates)) productStates[title]=null
-    const chip = document.createElement('span')
+    const chip=document.createElement('span')
     chip.className='pchip'+(productStates[title]?' '+productStates[title]:'')
     chip.textContent=title; chip.dataset.product=title
-    chip.addEventListener('click',()=>cycleChip(title,chip))
+    chip.addEventListener('click',()=>cycleProductChip(title,chip))
     container.appendChild(chip)
   })
-  document.getElementById('product-chips-row').style.display = titles.size>0?'flex':'none'
-  syncResetBtn()
+  document.getElementById('product-chips-row').style.display = titles.size>0 ? 'flex' : 'none'
+  syncProductResetBtn()
 }
-
-function cycleChip(title,chip){
+function cycleProductChip(title,chip){
   const cur=productStates[title]
   const next=cur===null?'include':cur==='include'?'exclude':null
   productStates[title]=next
   chip.className='pchip'+(next?' '+next:'')
-  syncResetBtn(); if(allOrders.length) renderAll()
+  syncProductResetBtn(); if(allOrders.length) renderAll()
 }
-function resetChips(){
+function resetProductChips(){
   Object.keys(productStates).forEach(k=>productStates[k]=null)
-  document.querySelectorAll('.pchip').forEach(c=>c.className='pchip')
-  syncResetBtn(); if(allOrders.length) renderAll()
+  document.querySelectorAll('#product-chips .pchip').forEach(c=>c.className='pchip')
+  syncProductResetBtn(); if(allOrders.length) renderAll()
 }
-function syncResetBtn(){
+function syncProductResetBtn(){
   const active=Object.values(productStates).some(v=>v!==null)
   document.getElementById('chips-reset').style.display=active?'inline-block':'none'
 }
@@ -440,15 +456,21 @@ function syncResetBtn(){
 
 function getFiltered(){
   const sf=document.getElementById('f-status').value
-  const pf=document.getElementById('f-payment').value
-  const included=Object.entries(productStates).filter(([,v])=>v==='include').map(([k])=>k)
-  const excluded=Object.entries(productStates).filter(([,v])=>v==='exclude').map(([k])=>k)
+
+  const payIncluded = Object.entries(paymentStates).filter(([,v])=>v==='include').map(([k])=>k)
+  const payExcluded = Object.entries(paymentStates).filter(([,v])=>v==='exclude').map(([k])=>k)
+  const prodIncluded = Object.entries(productStates).filter(([,v])=>v==='include').map(([k])=>k)
+  const prodExcluded = Object.entries(productStates).filter(([,v])=>v==='exclude').map(([k])=>k)
+
   return allOrders.filter(o=>{
     if(sf && o.status!==sf) return false
-    if(pf && o.payment_status!==pf) return false
+    // Pago chips
+    if(payIncluded.length && !payIncluded.includes(o.payment_status)) return false
+    if(payExcluded.length &&  payExcluded.includes(o.payment_status)) return false
+    // Producto chips
     const titles=(o.lines||[]).map(l=>l.title)
-    if(included.length && !included.some(t=>titles.includes(t))) return false
-    if(excluded.length && excluded.some(t=>titles.includes(t))) return false
+    if(prodIncluded.length && !prodIncluded.some(t=>titles.includes(t))) return false
+    if(prodExcluded.length &&  prodExcluded.some(t=>titles.includes(t))) return false
     return true
   })
 }
@@ -481,7 +503,6 @@ function renderAll(){
   document.getElementById('s-due-sub').textContent   = due>0?flat.filter(o=>o.to_be_paid_in_cents>0).length+' órdenes pendientes':'todo cobrado ✓'
   document.getElementById('s-items').textContent     = items
 
-  // Tabla
   document.getElementById('orders-tbody').innerHTML = flat.map(o=>{
     const dc=o.to_be_paid_in_cents>0?'color:var(--warn)':'color:var(--muted)'
     return `<tr>
@@ -510,32 +531,28 @@ function renderAll(){
 
 // ── Gráficos ─────────────────────────────────────────────────
 
-const MONTHS_ES = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic']
-const DAYS_ES   = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb']
+const MONTHS_ES=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic']
+const DAYS_ES=['Dom','Lun','Mar','Mié','Jue','Vie','Sáb']
 
-function makeChart(id, type, data, options){
+function makeChart(id,type,data,options){
   if(chartInstances[id]) chartInstances[id].destroy()
-  const ctx = document.getElementById(id).getContext('2d')
-  chartInstances[id] = new Chart(ctx, {type, data, options})
+  const ctx=document.getElementById(id).getContext('2d')
+  chartInstances[id]=new Chart(ctx,{type,data,options})
 }
 
-// Agrupa un nombre de producto en una "familia"
-// Toma la primera palabra que no sea número ni símbolo corto
 function productFamily(title){
   if(!title) return 'Otros'
-  const words = title.trim().split(/\s+/)
-  // Si solo hay 1 palabra, úsala directamente
+  const words=title.trim().split(/\s+/)
   if(words.length===1) return words[0]
-  // Filtrar palabras muy cortas o numéricas al inicio
-  const first = words.find(w => w.length>2 && isNaN(w))
-  return first || words[0]
+  const first=words.find(w=>w.length>2&&isNaN(w))
+  return first||words[0]
 }
 
 function renderCharts(orders){
   if(!orders.length) return
 
-  // ── 1. Ingresos por mes ──────────────────────────────────
-  const monthMap = {}
+  // 1. Ingresos por mes
+  const monthMap={}
   orders.forEach(o=>{
     if(!o.starts_at) return
     const d=new Date(o.starts_at)
@@ -544,152 +561,104 @@ function renderCharts(orders){
   })
   const monthKeys=Object.keys(monthMap).sort()
   const monthLabels=monthKeys.map(k=>{ const [y,m]=k.split('-'); return MONTHS_ES[+m-1]+' '+y })
-
   makeChart('ch-monthly','bar',{
-    labels: monthLabels,
-    datasets:[{ label:'Ingresos CHF', data:monthKeys.map(k=>monthMap[k]), backgroundColor:'rgba(232,255,71,.7)', borderColor:'#e8ff47', borderWidth:1, borderRadius:4 }]
-  },{
-    ...CHART_DEFAULTS,
-    plugins:{...CHART_DEFAULTS.plugins,legend:{display:false}},
-    scales:CHART_DEFAULTS.scales
-  })
+    labels:monthLabels,
+    datasets:[{label:'Ingresos CHF',data:monthKeys.map(k=>monthMap[k]),backgroundColor:'rgba(232,255,71,.7)',borderColor:'#e8ff47',borderWidth:1,borderRadius:4}]
+  },{...CHART_DEFAULTS,plugins:{...CHART_DEFAULTS.plugins,legend:{display:false}},scales:CHART_DEFAULTS.scales})
 
-  // ── 2. Ventas por mes por familia de productos ───────────
-  // Para cada línea, asignar la familia. Luego sumar CHF por línea proporcionalmente
-  const familyMonthMap = {}  // { familia: { yyyyMM: chf } }
+  // 2. Ventas por mes por familia
+  const famMonthMap={}
   orders.forEach(o=>{
     if(!o.starts_at) return
     const d=new Date(o.starts_at)
-    const monthKey=d.getFullYear()+'-'+pad(d.getMonth()+1)
+    const mk=d.getFullYear()+'-'+pad(d.getMonth()+1)
     const lines=(o.lines||[]).filter(l=>l.title)
     if(!lines.length) return
-    // Distribuir el total de la orden equitativamente entre las líneas
-    const totalCents = o.grand_total_in_cents||0
-    const perLine = totalCents/lines.length
+    const perLine=(o.grand_total_in_cents||0)/lines.length
     lines.forEach(l=>{
       const fam=productFamily(l.title)
-      if(!familyMonthMap[fam]) familyMonthMap[fam]={}
-      familyMonthMap[fam][monthKey]=(familyMonthMap[fam][monthKey]||0)+perLine/100
+      if(!famMonthMap[fam]) famMonthMap[fam]={}
+      famMonthMap[fam][mk]=(famMonthMap[fam][mk]||0)+perLine/100
     })
   })
-
-  const allFamilies=Object.keys(familyMonthMap).sort()
-  const familyDatasets=allFamilies.map((fam,i)=>({
-    label:fam,
-    data:monthKeys.map(k=>+(familyMonthMap[fam][k]||0).toFixed(2)),
-    backgroundColor:PALETTE[i%PALETTE.length]+'bb',
-    borderColor:PALETTE[i%PALETTE.length],
-    borderWidth:1,
-    borderRadius:3,
-    stack:'fam'
-  }))
-
+  const allFams=Object.keys(famMonthMap).sort()
   makeChart('ch-monthly-family','bar',{
     labels:monthLabels,
-    datasets:familyDatasets
+    datasets:allFams.map((fam,i)=>({
+      label:fam, data:monthKeys.map(k=>+(famMonthMap[fam][k]||0).toFixed(2)),
+      backgroundColor:PALETTE[i%PALETTE.length]+'bb', borderColor:PALETTE[i%PALETTE.length],
+      borderWidth:1, borderRadius:3, stack:'fam'
+    }))
   },{
     responsive:true, maintainAspectRatio:false,
     plugins:{
-      legend:{ labels:{ color:'#6b7280', font:{family:"'Space Mono',monospace",size:10}, boxWidth:10, padding:12 } },
-      tooltip:{
-        backgroundColor:'#1e2127',titleColor:'#e8e9ec',bodyColor:'#6b7280',borderColor:'#2a2d35',borderWidth:1,
-        callbacks:{ label: ctx=>' '+ctx.dataset.label+': CHF '+ctx.parsed.y.toLocaleString('de-CH',{minimumFractionDigits:2,maximumFractionDigits:2}) }
-      }
+      legend:{labels:{color:'#6b7280',font:{family:"'Space Mono',monospace",size:10},boxWidth:10,padding:12}},
+      tooltip:{backgroundColor:'#1e2127',titleColor:'#e8e9ec',bodyColor:'#6b7280',borderColor:'#2a2d35',borderWidth:1,
+        callbacks:{label:ctx=>' '+ctx.dataset.label+': CHF '+ctx.parsed.y.toLocaleString('de-CH',{minimumFractionDigits:2,maximumFractionDigits:2})}}
     },
     scales:{
-      x:{ stacked:true, ticks:{color:'#6b7280',font:{family:"'Space Mono',monospace",size:10}}, grid:{color:'#2a2d35'} },
-      y:{ stacked:true, ticks:{color:'#6b7280',font:{family:"'Space Mono',monospace",size:10},callback:v=>'CHF '+v.toLocaleString('de-CH')}, grid:{color:'#2a2d35'} }
+      x:{stacked:true,ticks:{color:'#6b7280',font:{family:"'Space Mono',monospace",size:10}},grid:{color:'#2a2d35'}},
+      y:{stacked:true,ticks:{color:'#6b7280',font:{family:"'Space Mono',monospace",size:10},callback:v=>'CHF '+v.toLocaleString('de-CH')},grid:{color:'#2a2d35'}}
     }
   })
 
-  // ── 3. Órdenes por estado ─────────────────────────────────
-  const statusCount={}
-  orders.forEach(o=>{ const s=o.status||'unknown'; statusCount[s]=(statusCount[s]||0)+1 })
-  const statusKeys=Object.keys(statusCount)
-  const statusColors={'reserved':'#47c8ff','started':'#e8ff47','returned':'#47ff9c','concept':'#ffb647','canceled':'#6b7280'}
+  // 3. Por estado
+  const stCount={};orders.forEach(o=>{const s=o.status||'unknown';stCount[s]=(stCount[s]||0)+1})
+  const stKeys=Object.keys(stCount)
+  const stColors={'reserved':'#47c8ff','started':'#e8ff47','returned':'#47ff9c','concept':'#ffb647','canceled':'#6b7280'}
   makeChart('ch-status','doughnut',{
-    labels:statusKeys,
-    datasets:[{ data:statusKeys.map(k=>statusCount[k]), backgroundColor:statusKeys.map(k=>statusColors[k]||'#6b7280'), borderColor:'#16181c', borderWidth:2 }]
-  },{
-    responsive:true, maintainAspectRatio:false,
-    plugins:{
-      legend:{ position:'right', labels:{color:'#6b7280',font:{family:"'Space Mono',monospace",size:11},boxWidth:12,padding:14} },
-      tooltip:{
-        backgroundColor:'#1e2127',titleColor:'#e8e9ec',bodyColor:'#6b7280',borderColor:'#2a2d35',borderWidth:1,
-        callbacks:{ label: ctx=>' '+ctx.label+': '+ctx.parsed+' órdenes' }
-      }
-    }
-  })
+    labels:stKeys,
+    datasets:[{data:stKeys.map(k=>stCount[k]),backgroundColor:stKeys.map(k=>stColors[k]||'#6b7280'),borderColor:'#16181c',borderWidth:2}]
+  },{responsive:true,maintainAspectRatio:false,plugins:{
+    legend:{position:'right',labels:{color:'#6b7280',font:{family:"'Space Mono',monospace",size:11},boxWidth:12,padding:14}},
+    tooltip:{backgroundColor:'#1e2127',titleColor:'#e8e9ec',bodyColor:'#6b7280',borderColor:'#2a2d35',borderWidth:1,callbacks:{label:ctx=>' '+ctx.label+': '+ctx.parsed+' órdenes'}}
+  }})
 
-  // ── 4. Estado de pagos ────────────────────────────────────
-  const payCount={}
-  orders.forEach(o=>{ const p=o.payment_status||'unknown'; payCount[p]=(payCount[p]||0)+1 })
+  // 4. Por estado pago
+  const payCount={};orders.forEach(o=>{const p=o.payment_status||'unknown';payCount[p]=(payCount[p]||0)+1})
   const payKeys=Object.keys(payCount)
   const payColors={'paid':'#47ff9c','payment_due':'#ffb647','partially_paid':'#d0a0ff','overpaid':'#47c8ff'}
   makeChart('ch-payment','doughnut',{
     labels:payKeys.map(k=>k.replace(/_/g,' ')),
-    datasets:[{ data:payKeys.map(k=>payCount[k]), backgroundColor:payKeys.map(k=>payColors[k]||'#6b7280'), borderColor:'#16181c', borderWidth:2 }]
-  },{
-    responsive:true, maintainAspectRatio:false,
-    plugins:{
-      legend:{ position:'right', labels:{color:'#6b7280',font:{family:"'Space Mono',monospace",size:11},boxWidth:12,padding:14} },
-      tooltip:{
-        backgroundColor:'#1e2127',titleColor:'#e8e9ec',bodyColor:'#6b7280',borderColor:'#2a2d35',borderWidth:1,
-        callbacks:{ label: ctx=>' '+ctx.label+': '+ctx.parsed+' órdenes' }
-      }
-    }
-  })
+    datasets:[{data:payKeys.map(k=>payCount[k]),backgroundColor:payKeys.map(k=>payColors[k]||'#6b7280'),borderColor:'#16181c',borderWidth:2}]
+  },{responsive:true,maintainAspectRatio:false,plugins:{
+    legend:{position:'right',labels:{color:'#6b7280',font:{family:"'Space Mono',monospace",size:11},boxWidth:12,padding:14}},
+    tooltip:{backgroundColor:'#1e2127',titleColor:'#e8e9ec',bodyColor:'#6b7280',borderColor:'#2a2d35',borderWidth:1,callbacks:{label:ctx=>' '+ctx.label+': '+ctx.parsed+' órdenes'}}
+  }})
 
-  // ── 5 & 6. Top productos ──────────────────────────────────
-  const prodOrders={}, prodRevenue={}
+  // 5 & 6. Top productos
+  const prodOrders={},prodRevenue={}
   orders.forEach(o=>{
     const lines=(o.lines||[]).filter(l=>l.title)
     const perLine=(o.grand_total_in_cents||0)/Math.max(lines.length,1)/100
-    lines.forEach(l=>{
-      prodOrders[l.title]=(prodOrders[l.title]||0)+1
-      prodRevenue[l.title]=(prodRevenue[l.title]||0)+perLine
-    })
+    lines.forEach(l=>{prodOrders[l.title]=(prodOrders[l.title]||0)+1;prodRevenue[l.title]=(prodRevenue[l.title]||0)+perLine})
   })
-
-  const topByOrders=Object.entries(prodOrders).sort((a,b)=>b[1]-a[1]).slice(0,10)
+  const topByO=Object.entries(prodOrders).sort((a,b)=>b[1]-a[1]).slice(0,10)
   makeChart('ch-top-orders','bar',{
-    labels:topByOrders.map(([t])=>t.length>22?t.slice(0,20)+'…':t),
-    datasets:[{ label:'Órdenes', data:topByOrders.map(([,v])=>v), backgroundColor:'rgba(71,200,255,.7)', borderColor:'#47c8ff', borderWidth:1, borderRadius:4 }]
-  },{
-    indexAxis:'y', responsive:true, maintainAspectRatio:false,
-    plugins:{ legend:{display:false}, tooltip:{ backgroundColor:'#1e2127',titleColor:'#e8e9ec',bodyColor:'#6b7280',borderColor:'#2a2d35',borderWidth:1, callbacks:{label:ctx=>' '+ctx.parsed.x+' órdenes'} } },
-    scales:{
-      x:{ ticks:{color:'#6b7280',font:{family:"'Space Mono',monospace",size:10}}, grid:{color:'#2a2d35'} },
-      y:{ ticks:{color:'#e8e9ec',font:{family:"'DM Sans',sans-serif",size:12}}, grid:{display:false} }
-    }
+    labels:topByO.map(([t])=>t.length>22?t.slice(0,20)+'…':t),
+    datasets:[{label:'Órdenes',data:topByO.map(([,v])=>v),backgroundColor:'rgba(71,200,255,.7)',borderColor:'#47c8ff',borderWidth:1,borderRadius:4}]
+  },{indexAxis:'y',responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:false},tooltip:{backgroundColor:'#1e2127',titleColor:'#e8e9ec',bodyColor:'#6b7280',borderColor:'#2a2d35',borderWidth:1,callbacks:{label:ctx=>' '+ctx.parsed.x+' órdenes'}}},
+    scales:{x:{ticks:{color:'#6b7280',font:{family:"'Space Mono',monospace",size:10}},grid:{color:'#2a2d35'}},y:{ticks:{color:'#e8e9ec',font:{family:"'DM Sans',sans-serif",size:12}},grid:{display:false}}}
   })
-
-  const topByRevenue=Object.entries(prodRevenue).sort((a,b)=>b[1]-a[1]).slice(0,10)
+  const topByR=Object.entries(prodRevenue).sort((a,b)=>b[1]-a[1]).slice(0,10)
   makeChart('ch-top-revenue','bar',{
-    labels:topByRevenue.map(([t])=>t.length>22?t.slice(0,20)+'…':t),
-    datasets:[{ label:'CHF', data:topByRevenue.map(([,v])=>+v.toFixed(2)), backgroundColor:'rgba(71,255,156,.7)', borderColor:'#47ff9c', borderWidth:1, borderRadius:4 }]
-  },{
-    indexAxis:'y', responsive:true, maintainAspectRatio:false,
-    plugins:{ legend:{display:false}, tooltip:{ backgroundColor:'#1e2127',titleColor:'#e8e9ec',bodyColor:'#6b7280',borderColor:'#2a2d35',borderWidth:1, callbacks:{label:ctx=>' CHF '+ctx.parsed.x.toLocaleString('de-CH',{minimumFractionDigits:2,maximumFractionDigits:2})} } },
-    scales:{
-      x:{ ticks:{color:'#6b7280',font:{family:"'Space Mono',monospace",size:10},callback:v=>'CHF '+v.toLocaleString('de-CH')}, grid:{color:'#2a2d35'} },
-      y:{ ticks:{color:'#e8e9ec',font:{family:"'DM Sans',sans-serif",size:12}}, grid:{display:false} }
-    }
+    labels:topByR.map(([t])=>t.length>22?t.slice(0,20)+'…':t),
+    datasets:[{label:'CHF',data:topByR.map(([,v])=>+v.toFixed(2)),backgroundColor:'rgba(71,255,156,.7)',borderColor:'#47ff9c',borderWidth:1,borderRadius:4}]
+  },{indexAxis:'y',responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:false},tooltip:{backgroundColor:'#1e2127',titleColor:'#e8e9ec',bodyColor:'#6b7280',borderColor:'#2a2d35',borderWidth:1,callbacks:{label:ctx=>' CHF '+ctx.parsed.x.toLocaleString('de-CH',{minimumFractionDigits:2,maximumFractionDigits:2})}}},
+    scales:{x:{ticks:{color:'#6b7280',font:{family:"'Space Mono',monospace",size:10},callback:v=>'CHF '+v.toLocaleString('de-CH')},grid:{color:'#2a2d35'}},y:{ticks:{color:'#e8e9ec',font:{family:"'DM Sans',sans-serif",size:12}},grid:{display:false}}}
   })
 
-  // ── 7. Órdenes por día de semana ──────────────────────────
-  const weekCount=[0,0,0,0,0,0,0]
-  orders.forEach(o=>{ if(o.starts_at) weekCount[new Date(o.starts_at).getDay()]++ })
+  // 7. Por día de semana
+  const wk=[0,0,0,0,0,0,0]
+  orders.forEach(o=>{ if(o.starts_at) wk[new Date(o.starts_at).getDay()]++ })
   makeChart('ch-weekday','bar',{
     labels:DAYS_ES,
-    datasets:[{ label:'Órdenes', data:weekCount, backgroundColor:weekCount.map((_,i)=>i===0||i===6?'rgba(255,182,71,.7)':'rgba(232,255,71,.7)'), borderColor:weekCount.map((_,i)=>i===0||i===6?'#ffb647':'#e8ff47'), borderWidth:1, borderRadius:4 }]
-  },{
-    responsive:true, maintainAspectRatio:false,
-    plugins:{ legend:{display:false}, tooltip:{ backgroundColor:'#1e2127',titleColor:'#e8e9ec',bodyColor:'#6b7280',borderColor:'#2a2d35',borderWidth:1, callbacks:{label:ctx=>' '+ctx.parsed.y+' órdenes'} } },
-    scales:{
-      x:{ ticks:{color:'#6b7280',font:{family:"'Space Mono',monospace",size:11}}, grid:{color:'#2a2d35'} },
-      y:{ ticks:{color:'#6b7280',font:{family:"'Space Mono',monospace",size:10}}, grid:{color:'#2a2d35'} }
-    }
+    datasets:[{label:'Órdenes',data:wk,backgroundColor:wk.map((_,i)=>i===0||i===6?'rgba(255,182,71,.7)':'rgba(232,255,71,.7)'),borderColor:wk.map((_,i)=>i===0||i===6?'#ffb647':'#e8ff47'),borderWidth:1,borderRadius:4}]
+  },{responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:false},tooltip:{backgroundColor:'#1e2127',titleColor:'#e8e9ec',bodyColor:'#6b7280',borderColor:'#2a2d35',borderWidth:1,callbacks:{label:ctx=>' '+ctx.parsed.y+' órdenes'}}},
+    scales:{x:{ticks:{color:'#6b7280',font:{family:"'Space Mono',monospace",size:11}},grid:{color:'#2a2d35'}},y:{ticks:{color:'#6b7280',font:{family:"'Space Mono',monospace",size:10}},grid:{color:'#2a2d35'}}}
   })
 }
 
@@ -697,15 +666,11 @@ function renderCharts(orders){
 
 function exportExcel(){
   if(!filteredOrders.length) return
-  const from=document.getElementById('f-from').value
-  const till=document.getElementById('f-till').value
+  const from=document.getElementById('f-from').value, till=document.getElementById('f-till').value
   const rows=filteredOrders.map(o=>({
-    'N°':o.number||'',
-    'Cliente':o.customer_name||'',
+    'N°':o.number||'','Cliente':o.customer_name||'',
     'Productos':(o.lines||[]).map(l=>(l.quantity>1?l.quantity+'× ':'')+l.title).join(' | '),
-    'Estado':o.status||'',
-    'Desde':o.starts_at?fmtDateFull(o.starts_at):'',
-    'Hasta':o.stops_at?fmtDateFull(o.stops_at):'',
+    'Estado':o.status||'','Desde':o.starts_at?fmtDateFull(o.starts_at):'','Hasta':o.stops_at?fmtDateFull(o.stops_at):'',
     'Items':o.item_count??0,
     'Precio CHF':+((o.price_in_cents||0)/100).toFixed(2),
     'Total CHF':+((o.grand_total_in_cents||0)/100).toFixed(2),
@@ -719,7 +684,7 @@ function exportExcel(){
   XLSX.writeFile(wb,`2wheels_${from}_${till}.xlsx`)
 }
 
-// ── Helpers UI ────────────────────────────────────────────────
+// ── Helpers ───────────────────────────────────────────────────
 
 function hideTable(){
   document.getElementById('orders-table').style.display='none'
@@ -727,16 +692,12 @@ function hideTable(){
   document.getElementById('empty-state').innerHTML='<span class="spinner"></span>Cargando órdenes...'
 }
 function showError(msg){
-  const b=document.getElementById('error-banner')
-  b.textContent=msg; b.style.display='block'
+  const b=document.getElementById('error-banner'); b.textContent=msg; b.style.display='block'
   document.getElementById('empty-state').style.display='none'
   document.getElementById('orders-table').style.display='none'
 }
 function setProgress(pct){ document.getElementById('progress-bar').style.width=pct+'%' }
-function setStatus(type,msg){
-  document.getElementById('status-pill').className='pill '+type
-  document.getElementById('status-text').textContent=msg
-}
+function setStatus(type,msg){ document.getElementById('status-pill').className='pill '+type; document.getElementById('status-text').textContent=msg }
 function sortBy(col,th){
   sortDir=sortCol===col?sortDir*-1:-1; sortCol=col
   document.querySelectorAll('th').forEach(t=>t.classList.remove('sorted'))
