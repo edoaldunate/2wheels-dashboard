@@ -1,17 +1,13 @@
 /**
  * Vercel API Route — /api/orders
- * Proxy seguro hacia Booqable. Las credenciales viven en variables de entorno
- * de Vercel, nunca expuestas en el frontend.
+ * Proxy hacia Booqable usando Access Token permanente.
  *
- * Variables de entorno requeridas en Vercel:
- *   BOOQABLE_SESSION   → valor de la cookie _booqable_session
- *   BOOQABLE_CSRF      → valor del header x-csrf-token
- *   BOOQABLE_PUSHER    → valor del header x-booqable-pusher-session-id
- *   BOOQABLE_SUBDOMAIN → ej: 2wheels-rental
+ * Variables de entorno en Vercel (se configuran una sola vez, nunca expiran):
+ *   BOOQABLE_TOKEN     → Access Token de Booqable
+ *   BOOQABLE_SUBDOMAIN → 2wheels-rental
  */
 
 export default async function handler(req, res) {
-  // CORS — permite llamadas desde cualquier origen (GitHub Pages, local, etc.)
   res.setHeader('Access-Control-Allow-Origin', '*')
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS')
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type')
@@ -19,22 +15,19 @@ export default async function handler(req, res) {
   if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' })
 
   const {
-    BOOQABLE_SESSION,
-    BOOQABLE_CSRF,
-    BOOQABLE_PUSHER,
+    BOOQABLE_TOKEN,
     BOOQABLE_SUBDOMAIN = '2wheels-rental',
   } = process.env
 
-  if (!BOOQABLE_SESSION || !BOOQABLE_CSRF) {
-    return res.status(500).json({ error: 'Credenciales no configuradas en Vercel env vars' })
+  if (!BOOQABLE_TOKEN) {
+    return res.status(500).json({ error: 'Falta BOOQABLE_TOKEN en las variables de entorno de Vercel' })
   }
 
-  // Parámetros que llegan del frontend
   const {
-    from   = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString(),
-    till   = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0, 23, 59, 59).toISOString(),
-    page   = '1',
-    size   = '30',
+    from = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString(),
+    till = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0, 23, 59, 59).toISOString(),
+    page = '1',
+    size = '30',
   } = req.query
 
   const p = new URLSearchParams()
@@ -63,16 +56,13 @@ export default async function handler(req, res) {
   try {
     const response = await fetch(booqableURL, {
       headers: {
-        'accept': 'application/json, text/plain, */*',
-        'cookie': `_booqable_session=${BOOQABLE_SESSION}`,
-        'x-csrf-token': BOOQABLE_CSRF,
-        'x-booqable-pusher-session-id': BOOQABLE_PUSHER || '',
-        'user-agent': 'Mozilla/5.0 (compatible; 2wheels-dashboard/1.0)',
+        'Authorization': `Bearer ${BOOQABLE_TOKEN}`,
+        'Content-Type': 'application/json',
       },
     })
 
     if (response.status === 401 || response.status === 403) {
-      return res.status(401).json({ error: 'Sesión expirada — actualiza BOOQABLE_SESSION en Vercel' })
+      return res.status(401).json({ error: 'Token inválido — revisa BOOQABLE_TOKEN en Vercel' })
     }
 
     if (!response.ok) {
@@ -80,7 +70,6 @@ export default async function handler(req, res) {
     }
 
     const data = await response.json()
-    // Cache 60 segundos en Vercel Edge
     res.setHeader('Cache-Control', 's-maxage=60, stale-while-revalidate')
     return res.status(200).json(data)
 
