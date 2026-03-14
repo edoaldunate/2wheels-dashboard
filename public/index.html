@@ -47,14 +47,20 @@
   .btn-ghost{background:transparent;border:1px solid var(--border);color:var(--muted);font-family:var(--mono);font-size:12px;padding:7px 14px;border-radius:6px;cursor:pointer;transition:border-color .15s,color .15s}
   .btn-ghost:hover{border-color:var(--accent2);color:var(--accent2)}
 
-  /* Checkbox Excluir */
-  .exclude-wrap{display:flex;align-items:center;gap:6px;cursor:pointer;user-select:none}
-  .exclude-wrap input[type="checkbox"]{appearance:none;-webkit-appearance:none;width:14px;height:14px;border:1px solid var(--border);border-radius:3px;background:var(--surface2);cursor:pointer;position:relative;transition:border-color .15s,background .15s;flex-shrink:0}
-  .exclude-wrap input[type="checkbox"]:checked{background:var(--danger);border-color:var(--danger)}
-  .exclude-wrap input[type="checkbox"]:checked::after{content:'✕';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:9px;color:#0e0f11;font-weight:700;line-height:1}
-  .exclude-wrap input[type="checkbox"]:disabled{opacity:.35;cursor:not-allowed}
-  .exclude-wrap span{font-size:11px;font-family:var(--mono);color:var(--muted);text-transform:uppercase;letter-spacing:.06em;transition:color .15s}
-  .exclude-wrap input[type="checkbox"]:checked + span{color:var(--danger)}
+  /* Chips de producto */
+  .product-chips-row{display:flex;align-items:center;gap:8px;padding:10px 0;flex-wrap:wrap;border-top:1px solid var(--border)}
+  .product-chips-label{font-size:11px;font-family:var(--mono);color:var(--muted);text-transform:uppercase;letter-spacing:.06em;flex-shrink:0}
+  .product-chips{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+  .pchip{font-family:var(--mono);font-size:11px;padding:4px 10px;border-radius:20px;border:1px solid var(--border);color:var(--muted);background:transparent;cursor:pointer;transition:color .15s,border-color .15s,background .15s;user-select:none;white-space:nowrap}
+  .pchip:hover{border-color:var(--text);color:var(--text)}
+  /* estado incluir: verde */
+  .pchip.include{color:var(--ok);border-color:var(--ok);background:rgba(71,255,156,.08)}
+  .pchip.include::before{content:'✓ '}
+  /* estado excluir: rojo */
+  .pchip.exclude{color:var(--danger);border-color:var(--danger);background:rgba(255,95,87,.08)}
+  .pchip.exclude::before{content:'✕ '}
+  .chips-reset{font-family:var(--mono);font-size:10px;padding:3px 8px;border-radius:20px;border:1px solid var(--border);color:var(--muted);background:transparent;cursor:pointer;opacity:.6;transition:opacity .15s}
+  .chips-reset:hover{opacity:1}
 
   .stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:1px;background:var(--border);border-bottom:1px solid var(--border)}
   .stat-card{background:var(--surface);padding:20px 24px;display:flex;flex-direction:column;gap:6px;transition:background .15s}
@@ -144,7 +150,7 @@
       <button class="btn-ghost" onclick="setThisYear()">Este año</button>
       <button class="btn" id="btn-load" onclick="loadOrders()">↓ Cargar</button>
     </div>
-    <!-- Fila 2: filtros -->
+    <!-- Fila 2: filtros estado + pago -->
     <div class="toolbar-row">
       <label>Estado</label>
       <select id="f-status">
@@ -162,14 +168,12 @@
         <option value="paid">Paid</option>
         <option value="overpaid">Overpaid</option>
       </select>
-      <label>Producto</label>
-      <select id="f-product">
-        <option value="">Todos los productos</option>
-      </select>
-      <label class="exclude-wrap" title="Excluir el producto seleccionado en vez de filtrarlo">
-        <input type="checkbox" id="f-product-exclude" disabled onchange="if(allOrders.length) renderAll()">
-        <span>Excluir</span>
-      </label>
+    </div>
+    <!-- Fila 3: chips de producto (oculta hasta cargar datos) -->
+    <div class="product-chips-row" id="product-chips-row" style="display:none">
+      <span class="product-chips-label">Producto</span>
+      <div class="product-chips" id="product-chips"></div>
+      <button class="chips-reset" id="chips-reset" onclick="resetChips()" style="display:none">Limpiar</button>
     </div>
   </div>
 
@@ -220,18 +224,13 @@ let allOrders = []
 let sortCol = 'number'
 let sortDir = -1
 
+// Map: título de producto → estado ('include' | 'exclude' | null)
+const productStates = {}
+
 window.addEventListener('DOMContentLoaded', () => {
   setThisMonth()
   document.getElementById('f-status').addEventListener('change',  () => { if (allOrders.length) renderAll() })
   document.getElementById('f-payment').addEventListener('change', () => { if (allOrders.length) renderAll() })
-  document.getElementById('f-product').addEventListener('change', () => {
-    // Habilitar/deshabilitar el checkbox según si hay producto seleccionado
-    const sel = document.getElementById('f-product')
-    const chk = document.getElementById('f-product-exclude')
-    chk.disabled = !sel.value
-    if (!sel.value) chk.checked = false
-    if (allOrders.length) renderAll()
-  })
 })
 
 function switchSource(src) {
@@ -247,9 +246,7 @@ function setDates(from,till){
   document.getElementById('f-from').value = from
   document.getElementById('f-till').value = till
 }
-function setToday(){
-  const d = fmt(new Date()); setDates(d,d)
-}
+function setToday(){ const d=fmt(new Date()); setDates(d,d) }
 function setThisMonth(){
   const n=new Date(),y=n.getFullYear(),m=n.getMonth()
   setDates(y+'-'+pad(m+1)+'-01', y+'-'+pad(m+1)+'-'+new Date(y,m+1,0).getDate())
@@ -302,7 +299,7 @@ async function loadOrders() {
       page++
     }
     setProgress(100)
-    populateProductFilter()
+    populateProductChips()
     renderAll()
     setStatus('ok', allOrders.length+' órdenes — '+new Date().toLocaleTimeString('es'))
   } catch(e) {
@@ -315,39 +312,67 @@ async function loadOrders() {
   }
 }
 
-function populateProductFilter() {
+function populateProductChips() {
   const titles = new Set()
   allOrders.forEach(o => (o.lines || []).forEach(l => { if (l.title) titles.add(l.title) }))
-  const sel = document.getElementById('f-product')
-  const current = sel.value
-  sel.innerHTML = '<option value="">Todos los productos</option>'
-  Array.from(titles).sort().forEach(t => {
-    const opt = document.createElement('option')
-    opt.value = t; opt.textContent = t
-    sel.appendChild(opt)
+
+  // Limpiar estados de productos que ya no existen en los nuevos datos
+  Object.keys(productStates).forEach(k => { if (!titles.has(k)) delete productStates[k] })
+
+  const container = document.getElementById('product-chips')
+  container.innerHTML = ''
+
+  Array.from(titles).sort().forEach(title => {
+    if (!(title in productStates)) productStates[title] = null
+    const chip = document.createElement('span')
+    chip.className = 'pchip' + (productStates[title] ? ' '+productStates[title] : '')
+    chip.textContent = title
+    chip.dataset.product = title
+    chip.addEventListener('click', () => cycleChip(title, chip))
+    container.appendChild(chip)
   })
-  if (current) sel.value = current
-  // Sincronizar estado del checkbox
-  const chk = document.getElementById('f-product-exclude')
-  chk.disabled = !sel.value
-  if (!sel.value) chk.checked = false
+
+  document.getElementById('product-chips-row').style.display = titles.size > 0 ? 'flex' : 'none'
+  syncResetBtn()
+}
+
+function cycleChip(title, chip) {
+  const cur = productStates[title]
+  // ciclo: null → include → exclude → null
+  const next = cur === null ? 'include' : cur === 'include' ? 'exclude' : null
+  productStates[title] = next
+  chip.className = 'pchip' + (next ? ' '+next : '')
+  syncResetBtn()
+  if (allOrders.length) renderAll()
+}
+
+function resetChips() {
+  Object.keys(productStates).forEach(k => productStates[k] = null)
+  document.querySelectorAll('.pchip').forEach(c => c.className = 'pchip')
+  syncResetBtn()
+  if (allOrders.length) renderAll()
+}
+
+function syncResetBtn() {
+  const active = Object.values(productStates).some(v => v !== null)
+  document.getElementById('chips-reset').style.display = active ? 'inline-block' : 'none'
 }
 
 function renderAll() {
-  const sf  = document.getElementById('f-status').value
-  const pf  = document.getElementById('f-payment').value
-  const prf = document.getElementById('f-product').value
-  const exc = document.getElementById('f-product-exclude').checked
+  const sf = document.getElementById('f-status').value
+  const pf = document.getElementById('f-payment').value
+
+  const included = Object.entries(productStates).filter(([,v]) => v === 'include').map(([k]) => k)
+  const excluded = Object.entries(productStates).filter(([,v]) => v === 'exclude').map(([k]) => k)
 
   let flat = allOrders.filter(o => {
     if (sf && o.status !== sf) return false
     if (pf && o.payment_status !== pf) return false
-    if (prf) {
-      const hasProduct = (o.lines || []).some(l => l.title === prf)
-      // exc=true → excluir ese producto (mostrar órdenes que NO lo tienen)
-      // exc=false → solo mostrar órdenes que SÍ lo tienen
-      if (exc ? hasProduct : !hasProduct) return false
-    }
+    const titles = (o.lines || []).map(l => l.title)
+    // Si hay productos incluidos: la orden debe tener al menos uno
+    if (included.length && !included.some(t => titles.includes(t))) return false
+    // Si hay productos excluidos: la orden no debe tener ninguno
+    if (excluded.length && excluded.some(t => titles.includes(t))) return false
     return true
   })
 
