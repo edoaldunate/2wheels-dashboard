@@ -209,7 +209,7 @@ export default async function handler(req, res) {
 
     // Cache más largo para rangos grandes (reduce re-fetches)
     res.setHeader('Cache-Control', 's-maxage=120, stale-while-revalidate=60')
-    return res.status(200).json({ orders, meta: firstMeta || {} })
+    return res.status(200).json({ orders, meta: firstMeta || {}, _debug_pgCollections: pgCollections })
 
   } catch (err) {
     console.error('[orders]', err)
