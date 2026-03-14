@@ -145,30 +145,37 @@ export default async function handler(req, res) {
       if (i + PAGE_SIZE < allOrderItems.length) await sleep(PAGE_DELAY)
     }
 
-    // ── 3. Traer collections con sus product_groups ───────────────────────
+    // ── 3. Traer collections y mapear sus product_groups via filter ──────────
     const pgCollections = {}  // productGroupId → string[]
-    let _debugCollRaw = null
     try {
+      // 1. Obtener lista de collections
       const collRes = await fetchWithRetry(
-        `${base}/collections?include=product_groups&fields[collections]=id,name&fields[product_groups]=id&page[size]=100`,
+        `${base}/collections?fields[collections]=id,name&page[size]=100`,
         { headers }
       )
       if (collRes && collRes.ok) {
         const collRaw = await collRes.json()
-        _debugCollRaw = { data: collRaw.data?.map(c => ({ id: c.id, name: c.attributes?.name, pgRels: c.relationships?.product_groups?.data })), included_count: collRaw.included?.length }
-        for (const coll of (collRaw.data || [])) {
-          const collName = coll.attributes?.name
-          if (!collName || collName === 'All') continue
-          const pgRels = coll.relationships?.product_groups?.data || []
-          for (const pg of pgRels) {
-            if (!pgCollections[pg.id]) pgCollections[pg.id] = []
-            if (!pgCollections[pg.id].includes(collName)) pgCollections[pg.id].push(collName)
+        const collections = (collRaw.data || [])
+          .map(c => ({ id: c.id, name: c.attributes?.name }))
+          .filter(c => c.name && c.name !== 'All')
+
+        // 2. Para cada collection, traer sus product_groups via filter
+        for (const coll of collections) {
+          const pgRes = await fetchWithRetry(
+            `${base}/product_groups?filter[collection_id]=${coll.id}&fields[product_groups]=id&page[size]=100`,
+            { headers }
+          )
+          if (pgRes && pgRes.ok) {
+            const pgRaw = await pgRes.json()
+            for (const pg of (pgRaw.data || [])) {
+              if (!pgCollections[pg.id]) pgCollections[pg.id] = []
+              if (!pgCollections[pg.id].includes(coll.name)) pgCollections[pg.id].push(coll.name)
+            }
           }
+          await sleep(PAGE_DELAY)
         }
-      } else {
-        _debugCollRaw = { error: collRes?.status }
       }
-    } catch(e) { _debugCollRaw = { exception: e.message } }
+    } catch(_) { /* no bloquea si falla */ }
 
     // ── 4. Normalizar y devolver ──────────────────────────────────────────
     // Deduplicar included (puede haber customers repetidos entre páginas)
@@ -215,7 +222,7 @@ export default async function handler(req, res) {
 
     // Cache más largo para rangos grandes (reduce re-fetches)
     res.setHeader('Cache-Control', 's-maxage=120, stale-while-revalidate=60')
-    return res.status(200).json({ orders, meta: firstMeta || {}, _debug_pgCollections: pgCollections, _debug_collRaw: _debugCollRaw })
+    return res.status(200).json({ orders, meta: firstMeta || {} })
 
   } catch (err) {
     console.error('[orders]', err)
