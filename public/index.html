@@ -6,6 +6,7 @@
 <title>2Wheels — Dashboard</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
   :root {
     --bg:#0e0f11;--surface:#16181c;--surface2:#1e2127;--border:#2a2d35;
@@ -46,6 +47,9 @@
   .btn:disabled{opacity:.4;cursor:not-allowed}
   .btn-ghost{background:transparent;border:1px solid var(--border);color:var(--muted);font-family:var(--mono);font-size:12px;padding:7px 14px;border-radius:6px;cursor:pointer;transition:border-color .15s,color .15s}
   .btn-ghost:hover{border-color:var(--accent2);color:var(--accent2)}
+  .btn-excel{background:transparent;border:1px solid #1d6f42;color:#1d6f42;font-family:var(--mono);font-size:12px;font-weight:700;padding:7px 14px;border-radius:6px;cursor:pointer;transition:background .15s,color .15s;letter-spacing:.03em}
+  .btn-excel:hover{background:#1d6f42;color:#fff}
+  .btn-excel:disabled{opacity:.35;cursor:not-allowed}
 
   /* Chips de producto */
   .product-chips-row{display:flex;align-items:center;gap:8px;padding:10px 0;flex-wrap:wrap;border-top:1px solid var(--border)}
@@ -53,10 +57,8 @@
   .product-chips{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
   .pchip{font-family:var(--mono);font-size:11px;padding:4px 10px;border-radius:20px;border:1px solid var(--border);color:var(--muted);background:transparent;cursor:pointer;transition:color .15s,border-color .15s,background .15s;user-select:none;white-space:nowrap}
   .pchip:hover{border-color:var(--text);color:var(--text)}
-  /* estado incluir: verde */
   .pchip.include{color:var(--ok);border-color:var(--ok);background:rgba(71,255,156,.08)}
   .pchip.include::before{content:'✓ '}
-  /* estado excluir: rojo */
   .pchip.exclude{color:var(--danger);border-color:var(--danger);background:rgba(255,95,87,.08)}
   .pchip.exclude::before{content:'✕ '}
   .chips-reset{font-family:var(--mono);font-size:10px;padding:3px 8px;border-radius:20px;border:1px solid var(--border);color:var(--muted);background:transparent;cursor:pointer;opacity:.6;transition:opacity .15s}
@@ -138,7 +140,7 @@
 <!-- BOOQABLE -->
 <div id="src-booqable">
   <div class="toolbar">
-    <!-- Fila 1: fechas + accesos rápidos + cargar -->
+    <!-- Fila 1: fechas + accesos rápidos + cargar + exportar -->
     <div class="toolbar-row">
       <label>Desde</label><input type="date" id="f-from">
       <label>Hasta</label><input type="date" id="f-till">
@@ -149,6 +151,7 @@
       <button class="btn-ghost" onclick="setThisQuarter()">Trimestre</button>
       <button class="btn-ghost" onclick="setThisYear()">Este año</button>
       <button class="btn" id="btn-load" onclick="loadOrders()">↓ Cargar</button>
+      <button class="btn-excel" id="btn-excel" onclick="exportExcel()" disabled title="Exporta los datos filtrados visibles en la tabla">⬇ Excel</button>
     </div>
     <!-- Fila 2: filtros estado + pago -->
     <div class="toolbar-row">
@@ -199,9 +202,9 @@
         <th onclick="sortBy('starts_at',this)">Desde</th>
         <th onclick="sortBy('stops_at',this)">Hasta</th>
         <th onclick="sortBy('item_count',this)">Items</th>
-        <th onclick="sortBy('price_in_cents',this)" style="text-align:right">Precio</th>
-        <th onclick="sortBy('grand_total_in_cents',this)" style="text-align:right">Total</th>
-        <th onclick="sortBy('to_be_paid_in_cents',this)" style="text-align:right">Por cobrar</th>
+        <th onclick="sortBy('price_in_cents',this)" style="text-align:right">Precio CHF</th>
+        <th onclick="sortBy('grand_total_in_cents',this)" style="text-align:right">Total CHF</th>
+        <th onclick="sortBy('to_be_paid_in_cents',this)" style="text-align:right">Por cobrar CHF</th>
         <th onclick="sortBy('payment_status',this)">Pago</th>
       </tr></thead>
       <tbody id="orders-tbody"></tbody>
@@ -221,10 +224,10 @@
 const API_BASE = 'https://2wheels-dashboard.vercel.app'
 
 let allOrders = []
+let filteredOrders = []   // siempre sincronizado con lo que se ve en la tabla
 let sortCol = 'number'
 let sortDir = -1
 
-// Map: título de producto → estado ('include' | 'exclude' | null)
 const productStates = {}
 
 window.addEventListener('DOMContentLoaded', () => {
@@ -273,6 +276,7 @@ async function loadOrders() {
 
   const btn = document.getElementById('btn-load')
   btn.disabled = true; btn.textContent = '...'
+  document.getElementById('btn-excel').disabled = true
   setStatus('idle','cargando...')
   document.getElementById('progress-wrap').style.display = 'block'
   document.getElementById('error-banner').style.display = 'none'
@@ -315,8 +319,6 @@ async function loadOrders() {
 function populateProductChips() {
   const titles = new Set()
   allOrders.forEach(o => (o.lines || []).forEach(l => { if (l.title) titles.add(l.title) }))
-
-  // Limpiar estados de productos que ya no existen en los nuevos datos
   Object.keys(productStates).forEach(k => { if (!titles.has(k)) delete productStates[k] })
 
   const container = document.getElementById('product-chips')
@@ -338,7 +340,6 @@ function populateProductChips() {
 
 function cycleChip(title, chip) {
   const cur = productStates[title]
-  // ciclo: null → include → exclude → null
   const next = cur === null ? 'include' : cur === 'include' ? 'exclude' : null
   productStates[title] = next
   chip.className = 'pchip' + (next ? ' '+next : '')
@@ -358,23 +359,24 @@ function syncResetBtn() {
   document.getElementById('chips-reset').style.display = active ? 'inline-block' : 'none'
 }
 
-function renderAll() {
+function getFiltered() {
   const sf = document.getElementById('f-status').value
   const pf = document.getElementById('f-payment').value
-
   const included = Object.entries(productStates).filter(([,v]) => v === 'include').map(([k]) => k)
   const excluded = Object.entries(productStates).filter(([,v]) => v === 'exclude').map(([k]) => k)
 
-  let flat = allOrders.filter(o => {
+  return allOrders.filter(o => {
     if (sf && o.status !== sf) return false
     if (pf && o.payment_status !== pf) return false
     const titles = (o.lines || []).map(l => l.title)
-    // Si hay productos incluidos: la orden debe tener al menos uno
     if (included.length && !included.some(t => titles.includes(t))) return false
-    // Si hay productos excluidos: la orden no debe tener ninguno
     if (excluded.length && excluded.some(t => titles.includes(t))) return false
     return true
   })
+}
+
+function renderAll() {
+  let flat = getFiltered()
 
   flat.sort((a,b) => {
     let va = a[sortCol]??'', vb = b[sortCol]??''
@@ -383,10 +385,13 @@ function renderAll() {
     return va<vb ? sortDir : va>vb ? -sortDir : 0
   })
 
+  filteredOrders = flat  // guardar referencia para exportar
+
   const invoiced   = flat.reduce((s,o)=>s+(o.price_in_cents||0),0)/100
   const grandTotal = flat.reduce((s,o)=>s+(o.grand_total_in_cents||0),0)/100
   const due        = flat.reduce((s,o)=>s+(o.to_be_paid_in_cents||0),0)/100
   const items      = flat.reduce((s,o)=>s+(o.item_count||0),0)
+  const sf         = document.getElementById('f-status').value
 
   document.getElementById('s-total').textContent     = flat.length
   document.getElementById('s-total-sub').textContent = sf||'todos los estados'
@@ -418,7 +423,50 @@ function renderAll() {
   const has = flat.length>0
   document.getElementById('orders-table').style.display = has ? 'table' : 'none'
   document.getElementById('empty-state').style.display  = has ? 'none'  : 'block'
+  document.getElementById('btn-excel').disabled = !has
   if (!has) document.getElementById('empty-state').innerHTML = '<span class="big">⊘</span>Sin órdenes para este filtro'
+}
+
+function exportExcel() {
+  if (!filteredOrders.length) return
+
+  const from = document.getElementById('f-from').value
+  const till = document.getElementById('f-till').value
+
+  // Construir filas — números reales para que Excel los reconozca
+  const rows = filteredOrders.map(o => ({
+    'N°':            o.number || '',
+    'Cliente':       o.customer_name || '',
+    'Productos':     (o.lines||[]).map(l => (l.quantity>1?l.quantity+'× ':'')+l.title).join(' | '),
+    'Estado':        o.status || '',
+    'Desde':         o.starts_at ? fmtDateFull(o.starts_at) : '',
+    'Hasta':         o.stops_at  ? fmtDateFull(o.stops_at)  : '',
+    'Items':         o.item_count ?? 0,
+    'Precio CHF':    +((o.price_in_cents||0)/100).toFixed(2),
+    'Total CHF':     +((o.grand_total_in_cents||0)/100).toFixed(2),
+    'Por cobrar CHF':+((o.to_be_paid_in_cents||0)/100).toFixed(2),
+    'Estado pago':   (o.payment_status||'').replace(/_/g,' '),
+  }))
+
+  const ws = XLSX.utils.json_to_sheet(rows)
+
+  // Ancho de columnas aproximado
+  ws['!cols'] = [
+    {wch:8},{wch:22},{wch:40},{wch:12},{wch:16},{wch:16},
+    {wch:6},{wch:12},{wch:12},{wch:14},{wch:16}
+  ]
+
+  const wb = XLSX.utils.book_new()
+  XLSX.utils.book_append_sheet(wb, ws, 'Órdenes')
+
+  const filename = `2wheels_${from}_${till}.xlsx`
+  XLSX.writeFile(wb, filename)
+}
+
+function fmtDateFull(iso) {
+  if (!iso) return ''
+  const d = new Date(iso)
+  return pad(d.getDate())+'.'+pad(d.getMonth()+1)+'.'+d.getFullYear()+' '+pad(d.getHours())+':'+pad(d.getMinutes())
 }
 
 function hideTable() {
