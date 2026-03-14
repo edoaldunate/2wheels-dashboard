@@ -130,6 +130,13 @@ export default async function handler(req, res) {
       const linesRes = await fetchWithRetry(`${base}/lines?${lp}`, { headers })
       if (linesRes && linesRes.ok) {
         const linesRaw = await linesRes.json()
+        // DEBUG: capture raw line sample from first batch
+        if (i === 0 && linesRaw.data?.length > 0) {
+          const sample = linesRaw.data[0]
+          console.log('[lines debug] first line keys:', Object.keys(sample))
+          console.log('[lines debug] relationships:', JSON.stringify(sample.relationships))
+          console.log('[lines debug] included types:', (linesRaw.included || []).map(x => x.type).slice(0, 5))
+        }
         for (const line of (linesRaw.data || [])) {
           const a   = line.attributes || {}
           const oid = a.order_id
@@ -222,9 +229,18 @@ export default async function handler(req, res) {
       }
     })
 
+    // DEBUG — eliminar cuando funcione
+    const sampleLine = Object.values(linesMap)[0]?.[0] || null
+    const _debug = {
+      pgCollectionsSize: Object.keys(pgCollections).length,
+      pgCollectionsSample: Object.entries(pgCollections).slice(0, 3),
+      sampleLine,
+      sampleOrderWithLines: orders.find(o => o.lines?.length > 0)?.lines?.slice(0, 2) || []
+    }
+
     // Cache más largo para rangos grandes (reduce re-fetches)
     res.setHeader('Cache-Control', 's-maxage=120, stale-while-revalidate=60')
-    return res.status(200).json({ orders, meta: firstMeta || {} })
+    return res.status(200).json({ orders, meta: firstMeta || {}, _debug })
 
   } catch (err) {
     console.error('[orders]', err)
