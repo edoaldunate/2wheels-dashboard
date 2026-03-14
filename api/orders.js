@@ -122,7 +122,7 @@ export default async function handler(req, res) {
 
       const lp = new URLSearchParams()
       batchIds.forEach(id => lp.append('filter[order_id][]', id))
-      lp.append('fields[lines]', 'title,quantity,order_id,price_in_cents,owner_id,owner_type')
+      lp.append('fields[lines]', 'title,quantity,order_id,price_in_cents,item_id,item_type')
       lp.append('page[size]', '200')
 
       const linesRes = await fetchWithRetry(`${base}/lines?${lp}`, { headers })
@@ -134,10 +134,7 @@ export default async function handler(req, res) {
           if (!oid) continue
           if (!linesMap[oid]) linesMap[oid] = []
           if (a.title) {
-            // owner_type puede ser 'ProductGroup' o 'product_groups' según Booqable
-            const isProductGroup = a.owner_type === 'ProductGroup' || a.owner_type === 'product_groups'
-            const ownerId = isProductGroup ? a.owner_id : null
-            linesMap[oid].push({ title: a.title, quantity: a.quantity || 1, owner_id: ownerId, _owner_type: a.owner_type })
+            linesMap[oid].push({ title: a.title, quantity: a.quantity || 1, item_id: a.item_id || null, item_type: a.item_type || null })
           }
         }
       }
@@ -216,7 +213,7 @@ export default async function handler(req, res) {
         to_be_paid_in_cents:  a.to_be_paid_in_cents   || 0,
         lines:                (linesMap[item.id] || []).map(l => ({
           ...l,
-          collections: pgCollections[l.owner_id] || []
+          collections: pgCollections[l.item_id] || []
         })),
       }
     })
@@ -224,9 +221,10 @@ export default async function handler(req, res) {
     // DEBUG
     const allLines = Object.values(linesMap).flat()
     const _debug = {
-      ownerTypes: [...new Set(allLines.map(l => l._owner_type))],
-      ownerIdSample: allLines.slice(0, 3).map(l => ({ title: l.title, owner_type: l._owner_type, owner_id: l.owner_id })),
+      itemTypes: [...new Set(allLines.map(l => l.item_type))],
+      itemSample: allLines.slice(0, 3).map(l => ({ title: l.title, item_type: l.item_type, item_id: l.item_id })),
       pgCollectionsSize: Object.keys(pgCollections).length,
+      pgCollectionsSample: Object.entries(pgCollections).slice(0, 3),
     }
 
     // Cache más largo para rangos grandes (reduce re-fetches)
