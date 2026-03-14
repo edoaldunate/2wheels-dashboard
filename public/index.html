@@ -498,7 +498,6 @@ function populateProductFamilyChips(){
   const families=new Set()
   allOrders.forEach(o=>(o.lines||[]).forEach(l=>{
     if(l.collections && l.collections.length) l.collections.forEach(c=>families.add(c))
-    else if(l.title) families.add(productFamily(l.title))  // fallback si no hay collections
   }))
   Object.keys(productFamilyStates).forEach(k=>{ if(!families.has(k)) delete productFamilyStates[k] })
   const container=document.getElementById('family-chips')
@@ -535,7 +534,7 @@ function getFiltered(){
     const titles=(o.lines||[]).map(l=>l.title)
     if(prodIncluded.length && !prodIncluded.some(t=>titles.includes(t))) return false
     if(prodExcluded.length &&  prodExcluded.some(t=>titles.includes(t))) return false
-    const lineColls=(o.lines||[]).flatMap(l=>l.collections&&l.collections.length?l.collections:[productFamily(l.title)])
+    const lineColls=(o.lines||[]).flatMap(l=>l.collections||[])
     if(famIncluded.length && !famIncluded.some(f=>lineColls.includes(f))) return false
     if(famExcluded.length &&  famExcluded.some(f=>lineColls.includes(f))) return false
     return true
