@@ -122,7 +122,7 @@ export default async function handler(req, res) {
 
       const lp = new URLSearchParams()
       batchIds.forEach(id => lp.append('filter[order_id][]', id))
-      lp.append('fields[lines]', 'title,quantity,order_id,price_in_cents')
+      lp.append('fields[lines]', 'title,quantity,order_id,price_in_cents,owner_id,owner_type')
       lp.append('page[size]', '200')
 
       const linesRes = await fetchWithRetry(`${base}/lines?${lp}`, { headers })
@@ -134,7 +134,7 @@ export default async function handler(req, res) {
           if (!oid) continue
           if (!linesMap[oid]) linesMap[oid] = []
           if (a.title) {
-            linesMap[oid].push({ title: a.title, quantity: a.quantity || 1 })
+            linesMap[oid].push({ title: a.title, quantity: a.quantity || 1, owner_id: a.owner_id || null })
           }
         }
       }
@@ -143,7 +143,27 @@ export default async function handler(req, res) {
       if (i + PAGE_SIZE < allOrderItems.length) await sleep(PAGE_DELAY)
     }
 
-    // ── 3. Normalizar y devolver ──────────────────────────────────────────
+    // ── 3. Traer product_groups con sus collections ───────────────────────
+    const pgCollections = {}  // productGroupId → string[]
+    try {
+      const pgRes = await fetchWithRetry(
+        `${base}/product_groups?include=collections&fields[product_groups]=id,name&fields[collections]=id,name&page[size]=100`,
+        { headers }
+      )
+      if (pgRes && pgRes.ok) {
+        const pgRaw = await pgRes.json()
+        const collNames = {}
+        for (const inc of (pgRaw.included || [])) {
+          if (inc.type === 'collections') collNames[inc.id] = inc.attributes?.name
+        }
+        for (const pg of (pgRaw.data || [])) {
+          const rels = pg.relationships?.collections?.data || []
+          pgCollections[pg.id] = rels.map(c => collNames[c.id]).filter(Boolean)
+        }
+      }
+    } catch(_) { /* no bloquea si falla */ }
+
+    // ── 4. Normalizar y devolver ──────────────────────────────────────────
     // Deduplicar included (puede haber customers repetidos entre páginas)
     const includedMap = {}
     for (const inc of allIncluded) {
@@ -179,7 +199,10 @@ export default async function handler(req, res) {
         price_in_cents:       a.price_in_cents       || 0,
         grand_total_in_cents: a.grand_total_in_cents  || 0,
         to_be_paid_in_cents:  a.to_be_paid_in_cents   || 0,
-        lines:                linesMap[item.id]       || [],
+        lines:                (linesMap[item.id] || []).map(l => ({
+          ...l,
+          collections: pgCollections[l.owner_id] || []
+        })),
       }
     })
 
