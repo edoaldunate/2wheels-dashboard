@@ -139,6 +139,10 @@
       <option value="paid">Paid</option>
       <option value="overpaid">Overpaid</option>
     </select>
+    <label>Producto</label>
+    <select id="f-product">
+      <option value="">Todos</option>
+    </select>
     <div class="sep"></div>
     <button class="btn-ghost" onclick="setToday()">Hoy</button>
     <button class="btn-ghost" onclick="setThisMonth()">Este mes</button>
@@ -197,8 +201,9 @@ let sortDir = -1
 
 window.addEventListener('DOMContentLoaded', () => {
   setThisMonth()
-  document.getElementById('f-status').addEventListener('change', () => { if (allOrders.length) renderAll() })
+  document.getElementById('f-status').addEventListener('change',  () => { if (allOrders.length) renderAll() })
   document.getElementById('f-payment').addEventListener('change', () => { if (allOrders.length) renderAll() })
+  document.getElementById('f-product').addEventListener('change', () => { if (allOrders.length) renderAll() })
 })
 
 function switchSource(src) {
@@ -269,6 +274,7 @@ async function loadOrders() {
       page++
     }
     setProgress(100)
+    populateProductFilter()
     renderAll()
     setStatus('ok', allOrders.length+' órdenes — '+new Date().toLocaleTimeString('es'))
   } catch(e) {
@@ -281,13 +287,30 @@ async function loadOrders() {
   }
 }
 
+function populateProductFilter() {
+  // Recopilar todos los títulos únicos de productos
+  const titles = new Set()
+  allOrders.forEach(o => (o.lines || []).forEach(l => { if (l.title) titles.add(l.title) }))
+  const sel = document.getElementById('f-product')
+  const current = sel.value
+  sel.innerHTML = '<option value="">Todos los productos</option>'
+  Array.from(titles).sort().forEach(t => {
+    const opt = document.createElement('option')
+    opt.value = t; opt.textContent = t
+    sel.appendChild(opt)
+  })
+  if (current) sel.value = current
+}
+
 function renderAll() {
   const sf = document.getElementById('f-status').value
   const pf = document.getElementById('f-payment').value
+  const prf = document.getElementById('f-product').value
 
   let flat = allOrders.filter(o => {
     if (sf && o.status !== sf) return false
     if (pf && o.payment_status !== pf) return false
+    if (prf && !(o.lines || []).some(l => l.title === prf)) return false
     return true
   })
 
