@@ -57,6 +57,14 @@
   .btn-excel:hover{background:#1d6f42;color:#fff}
   .btn-excel:disabled{opacity:.35;cursor:not-allowed}
 
+  /* Input búsqueda cliente */
+  .search-wrap{position:relative;display:flex;align-items:center}
+  .search-wrap input[type="text"]{background:var(--surface2);border:1px solid var(--border);color:var(--text);font-family:var(--sans);font-size:13px;padding:7px 32px 7px 10px;border-radius:6px;outline:none;transition:border-color .15s;width:200px}
+  .search-wrap input[type="text"]:focus{border-color:var(--accent);width:260px}
+  .search-wrap input[type="text"]::placeholder{color:var(--muted)}
+  .search-wrap .clear-btn{position:absolute;right:8px;background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;line-height:1;padding:0;display:none}
+  .search-wrap .clear-btn:hover{color:var(--text)}
+
   /* Chips genéricos */
   .chips-row{display:flex;align-items:center;gap:8px;padding:10px 0;flex-wrap:wrap;border-top:1px solid var(--border)}
   .chips-label{font-size:11px;font-family:var(--mono);color:var(--muted);text-transform:uppercase;letter-spacing:.06em;flex-shrink:0}
@@ -92,6 +100,7 @@
   .cell-num{font-family:var(--mono);font-size:13px;color:var(--accent);font-weight:700}
   .cell-date{font-family:var(--mono);font-size:12px;color:var(--muted)}
   .cell-chf{font-family:var(--mono);font-size:13px;text-align:right}
+  mark{background:rgba(232,255,71,.25);color:var(--accent);border-radius:2px;padding:0 1px}
 
   .badge{display:inline-flex;align-items:center;font-family:var(--mono);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;padding:3px 8px;border-radius:4px;border:1px solid}
   .badge.reserved{color:#47c8ff;border-color:rgba(71,200,255,.3);background:rgba(71,200,255,.08)}
@@ -133,6 +142,8 @@
     .stats-grid{grid-template-columns:1fr 1fr}
     .charts-wrap{grid-template-columns:1fr}
     .chart-card.full{grid-column:auto}
+    .search-wrap input[type="text"]{width:140px}
+    .search-wrap input[type="text"]:focus{width:180px}
   }
 </style>
 </head>
@@ -171,7 +182,7 @@
       <button class="btn" id="btn-load" onclick="loadOrders()">↓ Cargar</button>
       <button class="btn-excel" id="btn-excel" onclick="exportExcel()" disabled>⬇ Excel</button>
     </div>
-    <!-- Fila 2: Estado -->
+    <!-- Fila 2: Estado + búsqueda cliente -->
     <div class="toolbar-row">
       <label>Estado</label>
       <select id="f-status">
@@ -181,8 +192,13 @@
         <option value="returned">Returned</option>
         <option value="concept">Concept</option>
       </select>
+      <label>Cliente</label>
+      <div class="search-wrap">
+        <input type="text" id="f-customer" placeholder="Buscar cliente…" oninput="onCustomerInput(this)">
+        <button class="clear-btn" id="f-customer-clear" onclick="clearCustomer()" title="Limpiar">✕</button>
+      </div>
     </div>
-    <!-- Fila 3: chips Pago (siempre visibles) -->
+    <!-- Fila 3: chips Pago -->
     <div class="chips-row">
       <span class="chips-label">Pago</span>
       <div class="chips-group" id="payment-chips">
@@ -286,15 +302,8 @@ let filteredOrders = []
 let sortCol = 'number', sortDir = -1
 let currentView = 'data'
 
-// Estado chips producto: { título: null | 'include' | 'exclude' }
 const productStates = {}
-// Estado chips pago: { key: null | 'include' | 'exclude' }
-const paymentStates = {
-  payment_due: null,
-  partially_paid: null,
-  paid: null,
-  overpaid: null
-}
+const paymentStates = { payment_due:null, partially_paid:null, paid:null, overpaid:null }
 
 const PALETTE = [
   '#e8ff47','#47c8ff','#47ff9c','#ffb647','#ff5f57',
@@ -302,18 +311,15 @@ const PALETTE = [
   '#ffdc47','#4778ff','#ff4747','#47ffa0','#c847ff'
 ]
 const CHART_DEFAULTS = {
-  color: '#6b7280',
-  plugins: {
-    legend: { labels: { color:'#6b7280', font:{family:"'Space Mono',monospace",size:11}, boxWidth:12, padding:16 } },
-    tooltip: {
-      backgroundColor:'#1e2127', titleColor:'#e8e9ec', bodyColor:'#6b7280',
-      borderColor:'#2a2d35', borderWidth:1,
-      callbacks: { label: ctx => ' '+ctx.dataset.label+': CHF '+(ctx.parsed.y??ctx.parsed).toLocaleString('de-CH',{minimumFractionDigits:2,maximumFractionDigits:2}) }
-    }
+  color:'#6b7280',
+  plugins:{
+    legend:{labels:{color:'#6b7280',font:{family:"'Space Mono',monospace",size:11},boxWidth:12,padding:16}},
+    tooltip:{backgroundColor:'#1e2127',titleColor:'#e8e9ec',bodyColor:'#6b7280',borderColor:'#2a2d35',borderWidth:1,
+      callbacks:{label:ctx=>' '+ctx.dataset.label+': CHF '+(ctx.parsed.y??ctx.parsed).toLocaleString('de-CH',{minimumFractionDigits:2,maximumFractionDigits:2})}}
   },
-  scales: {
-    x: { ticks:{color:'#6b7280',font:{family:"'Space Mono',monospace",size:10}}, grid:{color:'#2a2d35'} },
-    y: { ticks:{color:'#6b7280',font:{family:"'Space Mono',monospace",size:10},callback:v=>'CHF '+v.toLocaleString('de-CH')}, grid:{color:'#2a2d35'} }
+  scales:{
+    x:{ticks:{color:'#6b7280',font:{family:"'Space Mono',monospace",size:10}},grid:{color:'#2a2d35'}},
+    y:{ticks:{color:'#6b7280',font:{family:"'Space Mono',monospace",size:10},callback:v=>'CHF '+v.toLocaleString('de-CH')},grid:{color:'#2a2d35'}}
   }
 }
 const chartInstances = {}
@@ -350,6 +356,28 @@ function setLastMonth(){ const n=new Date(),y=n.getFullYear(),m=n.getMonth(); co
 function setThisQuarter(){ const n=new Date(),y=n.getFullYear(),m=n.getMonth(); const qs=Math.floor(m/3)*3,qe=qs+2; setDates(y+'-'+pad(qs+1)+'-01',y+'-'+pad(qe+1)+'-'+new Date(y,qe+1,0).getDate()) }
 function setThisYear(){ const y=new Date().getFullYear(); setDates(y+'-01-01',y+'-12-31') }
 function setLastYear(){ const y=new Date().getFullYear()-1; setDates(y+'-01-01',y+'-12-31') }
+
+// ── Búsqueda cliente ─────────────────────────────────────────
+
+function onCustomerInput(input) {
+  document.getElementById('f-customer-clear').style.display = input.value ? 'block' : 'none'
+  if(allOrders.length) renderAll()
+}
+function clearCustomer() {
+  const inp = document.getElementById('f-customer')
+  inp.value = ''
+  document.getElementById('f-customer-clear').style.display = 'none'
+  if(allOrders.length) renderAll()
+  inp.focus()
+}
+
+// Resalta la coincidencia del texto buscado en el nombre del cliente
+function highlightName(name, query) {
+  if(!query) return name
+  const idx = name.toLowerCase().indexOf(query.toLowerCase())
+  if(idx === -1) return name
+  return name.slice(0,idx) + '<mark>' + name.slice(idx, idx+query.length) + '</mark>' + name.slice(idx+query.length)
+}
 
 // ── Carga ────────────────────────────────────────────────────
 
@@ -397,34 +425,30 @@ async function loadOrders() {
 // ── Chips PAGO ───────────────────────────────────────────────
 
 function cyclePayChip(chip) {
-  const key = chip.dataset.pay
-  const cur = paymentStates[key]
-  const next = cur===null ? 'include' : cur==='include' ? 'exclude' : null
-  paymentStates[key] = next
-  chip.className = 'pchip' + (next ? ' '+next : '')
-  syncPayResetBtn()
-  if(allOrders.length) renderAll()
+  const key=chip.dataset.pay, cur=paymentStates[key]
+  const next=cur===null?'include':cur==='include'?'exclude':null
+  paymentStates[key]=next
+  chip.className='pchip'+(next?' '+next:'')
+  syncPayResetBtn(); if(allOrders.length) renderAll()
 }
 function resetPayChips() {
-  Object.keys(paymentStates).forEach(k => paymentStates[k]=null)
-  document.querySelectorAll('#payment-chips .pchip').forEach(c => c.className='pchip')
-  syncPayResetBtn()
-  if(allOrders.length) renderAll()
+  Object.keys(paymentStates).forEach(k=>paymentStates[k]=null)
+  document.querySelectorAll('#payment-chips .pchip').forEach(c=>c.className='pchip')
+  syncPayResetBtn(); if(allOrders.length) renderAll()
 }
 function syncPayResetBtn() {
-  const active = Object.values(paymentStates).some(v=>v!==null)
-  document.getElementById('pay-chips-reset').style.display = active ? 'inline-block' : 'none'
+  document.getElementById('pay-chips-reset').style.display = Object.values(paymentStates).some(v=>v!==null)?'inline-block':'none'
 }
 
 // ── Chips PRODUCTO ───────────────────────────────────────────
 
 function populateProductChips() {
-  const titles = new Set()
+  const titles=new Set()
   allOrders.forEach(o=>(o.lines||[]).forEach(l=>{ if(l.title) titles.add(l.title) }))
   Object.keys(productStates).forEach(k=>{ if(!titles.has(k)) delete productStates[k] })
-  const container = document.getElementById('product-chips')
+  const container=document.getElementById('product-chips')
   container.innerHTML=''
-  Array.from(titles).sort().forEach(title => {
+  Array.from(titles).sort().forEach(title=>{
     if(!(title in productStates)) productStates[title]=null
     const chip=document.createElement('span')
     chip.className='pchip'+(productStates[title]?' '+productStates[title]:'')
@@ -432,14 +456,13 @@ function populateProductChips() {
     chip.addEventListener('click',()=>cycleProductChip(title,chip))
     container.appendChild(chip)
   })
-  document.getElementById('product-chips-row').style.display = titles.size>0 ? 'flex' : 'none'
+  document.getElementById('product-chips-row').style.display=titles.size>0?'flex':'none'
   syncProductResetBtn()
 }
 function cycleProductChip(title,chip){
   const cur=productStates[title]
   const next=cur===null?'include':cur==='include'?'exclude':null
-  productStates[title]=next
-  chip.className='pchip'+(next?' '+next:'')
+  productStates[title]=next; chip.className='pchip'+(next?' '+next:'')
   syncProductResetBtn(); if(allOrders.length) renderAll()
 }
 function resetProductChips(){
@@ -448,26 +471,24 @@ function resetProductChips(){
   syncProductResetBtn(); if(allOrders.length) renderAll()
 }
 function syncProductResetBtn(){
-  const active=Object.values(productStates).some(v=>v!==null)
-  document.getElementById('chips-reset').style.display=active?'inline-block':'none'
+  document.getElementById('chips-reset').style.display=Object.values(productStates).some(v=>v!==null)?'inline-block':'none'
 }
 
 // ── Filtrado ─────────────────────────────────────────────────
 
 function getFiltered(){
-  const sf=document.getElementById('f-status').value
-
-  const payIncluded = Object.entries(paymentStates).filter(([,v])=>v==='include').map(([k])=>k)
-  const payExcluded = Object.entries(paymentStates).filter(([,v])=>v==='exclude').map(([k])=>k)
+  const sf  = document.getElementById('f-status').value
+  const cq  = document.getElementById('f-customer').value.trim().toLowerCase()
+  const payIncluded  = Object.entries(paymentStates).filter(([,v])=>v==='include').map(([k])=>k)
+  const payExcluded  = Object.entries(paymentStates).filter(([,v])=>v==='exclude').map(([k])=>k)
   const prodIncluded = Object.entries(productStates).filter(([,v])=>v==='include').map(([k])=>k)
   const prodExcluded = Object.entries(productStates).filter(([,v])=>v==='exclude').map(([k])=>k)
 
   return allOrders.filter(o=>{
     if(sf && o.status!==sf) return false
-    // Pago chips
+    if(cq && !(o.customer_name||'').toLowerCase().includes(cq)) return false
     if(payIncluded.length && !payIncluded.includes(o.payment_status)) return false
     if(payExcluded.length &&  payExcluded.includes(o.payment_status)) return false
-    // Producto chips
     const titles=(o.lines||[]).map(l=>l.title)
     if(prodIncluded.length && !prodIncluded.some(t=>titles.includes(t))) return false
     if(prodExcluded.length &&  prodExcluded.some(t=>titles.includes(t))) return false
@@ -478,6 +499,7 @@ function getFiltered(){
 // ── Render principal ─────────────────────────────────────────
 
 function renderAll(){
+  const cq = document.getElementById('f-customer').value.trim()
   let flat=getFiltered()
   flat.sort((a,b)=>{
     let va=a[sortCol]??'',vb=b[sortCol]??''
@@ -505,9 +527,10 @@ function renderAll(){
 
   document.getElementById('orders-tbody').innerHTML = flat.map(o=>{
     const dc=o.to_be_paid_in_cents>0?'color:var(--warn)':'color:var(--muted)'
+    const displayName = highlightName(o.customer_name||'', cq)
     return `<tr>
       <td class="cell-num">#${o.number||'—'}</td>
-      <td style="font-size:13px;font-weight:500;max-width:160px;overflow:hidden;text-overflow:ellipsis" title="${o.customer_name}">${o.customer_name}</td>
+      <td style="font-size:13px;font-weight:500;max-width:160px;overflow:hidden;text-overflow:ellipsis" title="${o.customer_name}">${displayName}</td>
       <td style="max-width:200px">${renderLines(o.lines)}</td>
       <td><span class="badge ${o.status||''}">${o.status||'—'}</span></td>
       <td class="cell-date">${fmtDate(o.starts_at)}</td>
@@ -539,7 +562,6 @@ function makeChart(id,type,data,options){
   const ctx=document.getElementById(id).getContext('2d')
   chartInstances[id]=new Chart(ctx,{type,data,options})
 }
-
 function productFamily(title){
   if(!title) return 'Otros'
   const words=title.trim().split(/\s+/)
@@ -551,115 +573,42 @@ function productFamily(title){
 function renderCharts(orders){
   if(!orders.length) return
 
-  // 1. Ingresos por mes
   const monthMap={}
-  orders.forEach(o=>{
-    if(!o.starts_at) return
-    const d=new Date(o.starts_at)
-    const key=d.getFullYear()+'-'+pad(d.getMonth()+1)
-    monthMap[key]=(monthMap[key]||0)+(o.grand_total_in_cents||0)/100
-  })
+  orders.forEach(o=>{ if(!o.starts_at) return; const d=new Date(o.starts_at); const key=d.getFullYear()+'-'+pad(d.getMonth()+1); monthMap[key]=(monthMap[key]||0)+(o.grand_total_in_cents||0)/100 })
   const monthKeys=Object.keys(monthMap).sort()
   const monthLabels=monthKeys.map(k=>{ const [y,m]=k.split('-'); return MONTHS_ES[+m-1]+' '+y })
-  makeChart('ch-monthly','bar',{
-    labels:monthLabels,
-    datasets:[{label:'Ingresos CHF',data:monthKeys.map(k=>monthMap[k]),backgroundColor:'rgba(232,255,71,.7)',borderColor:'#e8ff47',borderWidth:1,borderRadius:4}]
-  },{...CHART_DEFAULTS,plugins:{...CHART_DEFAULTS.plugins,legend:{display:false}},scales:CHART_DEFAULTS.scales})
+  makeChart('ch-monthly','bar',{labels:monthLabels,datasets:[{label:'Ingresos CHF',data:monthKeys.map(k=>monthMap[k]),backgroundColor:'rgba(232,255,71,.7)',borderColor:'#e8ff47',borderWidth:1,borderRadius:4}]},
+    {...CHART_DEFAULTS,plugins:{...CHART_DEFAULTS.plugins,legend:{display:false}},scales:CHART_DEFAULTS.scales})
 
-  // 2. Ventas por mes por familia
   const famMonthMap={}
-  orders.forEach(o=>{
-    if(!o.starts_at) return
-    const d=new Date(o.starts_at)
-    const mk=d.getFullYear()+'-'+pad(d.getMonth()+1)
-    const lines=(o.lines||[]).filter(l=>l.title)
-    if(!lines.length) return
-    const perLine=(o.grand_total_in_cents||0)/lines.length
-    lines.forEach(l=>{
-      const fam=productFamily(l.title)
-      if(!famMonthMap[fam]) famMonthMap[fam]={}
-      famMonthMap[fam][mk]=(famMonthMap[fam][mk]||0)+perLine/100
-    })
-  })
+  orders.forEach(o=>{ if(!o.starts_at) return; const d=new Date(o.starts_at); const mk=d.getFullYear()+'-'+pad(d.getMonth()+1); const lines=(o.lines||[]).filter(l=>l.title); if(!lines.length) return; const perLine=(o.grand_total_in_cents||0)/lines.length; lines.forEach(l=>{ const fam=productFamily(l.title); if(!famMonthMap[fam]) famMonthMap[fam]={}; famMonthMap[fam][mk]=(famMonthMap[fam][mk]||0)+perLine/100 }) })
   const allFams=Object.keys(famMonthMap).sort()
-  makeChart('ch-monthly-family','bar',{
-    labels:monthLabels,
-    datasets:allFams.map((fam,i)=>({
-      label:fam, data:monthKeys.map(k=>+(famMonthMap[fam][k]||0).toFixed(2)),
-      backgroundColor:PALETTE[i%PALETTE.length]+'bb', borderColor:PALETTE[i%PALETTE.length],
-      borderWidth:1, borderRadius:3, stack:'fam'
-    }))
-  },{
-    responsive:true, maintainAspectRatio:false,
-    plugins:{
-      legend:{labels:{color:'#6b7280',font:{family:"'Space Mono',monospace",size:10},boxWidth:10,padding:12}},
-      tooltip:{backgroundColor:'#1e2127',titleColor:'#e8e9ec',bodyColor:'#6b7280',borderColor:'#2a2d35',borderWidth:1,
-        callbacks:{label:ctx=>' '+ctx.dataset.label+': CHF '+ctx.parsed.y.toLocaleString('de-CH',{minimumFractionDigits:2,maximumFractionDigits:2})}}
-    },
-    scales:{
-      x:{stacked:true,ticks:{color:'#6b7280',font:{family:"'Space Mono',monospace",size:10}},grid:{color:'#2a2d35'}},
-      y:{stacked:true,ticks:{color:'#6b7280',font:{family:"'Space Mono',monospace",size:10},callback:v=>'CHF '+v.toLocaleString('de-CH')},grid:{color:'#2a2d35'}}
-    }
-  })
+  makeChart('ch-monthly-family','bar',{labels:monthLabels,datasets:allFams.map((fam,i)=>({label:fam,data:monthKeys.map(k=>+(famMonthMap[fam][k]||0).toFixed(2)),backgroundColor:PALETTE[i%PALETTE.length]+'bb',borderColor:PALETTE[i%PALETTE.length],borderWidth:1,borderRadius:3,stack:'fam'}))},
+    {responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#6b7280',font:{family:"'Space Mono',monospace",size:10},boxWidth:10,padding:12}},tooltip:{backgroundColor:'#1e2127',titleColor:'#e8e9ec',bodyColor:'#6b7280',borderColor:'#2a2d35',borderWidth:1,callbacks:{label:ctx=>' '+ctx.dataset.label+': CHF '+ctx.parsed.y.toLocaleString('de-CH',{minimumFractionDigits:2,maximumFractionDigits:2})}}},scales:{x:{stacked:true,ticks:{color:'#6b7280',font:{family:"'Space Mono',monospace",size:10}},grid:{color:'#2a2d35'}},y:{stacked:true,ticks:{color:'#6b7280',font:{family:"'Space Mono',monospace",size:10},callback:v=>'CHF '+v.toLocaleString('de-CH')},grid:{color:'#2a2d35'}}}})
 
-  // 3. Por estado
   const stCount={};orders.forEach(o=>{const s=o.status||'unknown';stCount[s]=(stCount[s]||0)+1})
-  const stKeys=Object.keys(stCount)
-  const stColors={'reserved':'#47c8ff','started':'#e8ff47','returned':'#47ff9c','concept':'#ffb647','canceled':'#6b7280'}
-  makeChart('ch-status','doughnut',{
-    labels:stKeys,
-    datasets:[{data:stKeys.map(k=>stCount[k]),backgroundColor:stKeys.map(k=>stColors[k]||'#6b7280'),borderColor:'#16181c',borderWidth:2}]
-  },{responsive:true,maintainAspectRatio:false,plugins:{
-    legend:{position:'right',labels:{color:'#6b7280',font:{family:"'Space Mono',monospace",size:11},boxWidth:12,padding:14}},
-    tooltip:{backgroundColor:'#1e2127',titleColor:'#e8e9ec',bodyColor:'#6b7280',borderColor:'#2a2d35',borderWidth:1,callbacks:{label:ctx=>' '+ctx.label+': '+ctx.parsed+' órdenes'}}
-  }})
+  const stKeys=Object.keys(stCount),stColors={'reserved':'#47c8ff','started':'#e8ff47','returned':'#47ff9c','concept':'#ffb647','canceled':'#6b7280'}
+  makeChart('ch-status','doughnut',{labels:stKeys,datasets:[{data:stKeys.map(k=>stCount[k]),backgroundColor:stKeys.map(k=>stColors[k]||'#6b7280'),borderColor:'#16181c',borderWidth:2}]},
+    {responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{color:'#6b7280',font:{family:"'Space Mono',monospace",size:11},boxWidth:12,padding:14}},tooltip:{backgroundColor:'#1e2127',titleColor:'#e8e9ec',bodyColor:'#6b7280',borderColor:'#2a2d35',borderWidth:1,callbacks:{label:ctx=>' '+ctx.label+': '+ctx.parsed+' órdenes'}}}})
 
-  // 4. Por estado pago
   const payCount={};orders.forEach(o=>{const p=o.payment_status||'unknown';payCount[p]=(payCount[p]||0)+1})
-  const payKeys=Object.keys(payCount)
-  const payColors={'paid':'#47ff9c','payment_due':'#ffb647','partially_paid':'#d0a0ff','overpaid':'#47c8ff'}
-  makeChart('ch-payment','doughnut',{
-    labels:payKeys.map(k=>k.replace(/_/g,' ')),
-    datasets:[{data:payKeys.map(k=>payCount[k]),backgroundColor:payKeys.map(k=>payColors[k]||'#6b7280'),borderColor:'#16181c',borderWidth:2}]
-  },{responsive:true,maintainAspectRatio:false,plugins:{
-    legend:{position:'right',labels:{color:'#6b7280',font:{family:"'Space Mono',monospace",size:11},boxWidth:12,padding:14}},
-    tooltip:{backgroundColor:'#1e2127',titleColor:'#e8e9ec',bodyColor:'#6b7280',borderColor:'#2a2d35',borderWidth:1,callbacks:{label:ctx=>' '+ctx.label+': '+ctx.parsed+' órdenes'}}
-  }})
+  const payKeys=Object.keys(payCount),payColors={'paid':'#47ff9c','payment_due':'#ffb647','partially_paid':'#d0a0ff','overpaid':'#47c8ff'}
+  makeChart('ch-payment','doughnut',{labels:payKeys.map(k=>k.replace(/_/g,' ')),datasets:[{data:payKeys.map(k=>payCount[k]),backgroundColor:payKeys.map(k=>payColors[k]||'#6b7280'),borderColor:'#16181c',borderWidth:2}]},
+    {responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{color:'#6b7280',font:{family:"'Space Mono',monospace",size:11},boxWidth:12,padding:14}},tooltip:{backgroundColor:'#1e2127',titleColor:'#e8e9ec',bodyColor:'#6b7280',borderColor:'#2a2d35',borderWidth:1,callbacks:{label:ctx=>' '+ctx.label+': '+ctx.parsed+' órdenes'}}}})
 
-  // 5 & 6. Top productos
   const prodOrders={},prodRevenue={}
-  orders.forEach(o=>{
-    const lines=(o.lines||[]).filter(l=>l.title)
-    const perLine=(o.grand_total_in_cents||0)/Math.max(lines.length,1)/100
-    lines.forEach(l=>{prodOrders[l.title]=(prodOrders[l.title]||0)+1;prodRevenue[l.title]=(prodRevenue[l.title]||0)+perLine})
-  })
+  orders.forEach(o=>{ const lines=(o.lines||[]).filter(l=>l.title); const perLine=(o.grand_total_in_cents||0)/Math.max(lines.length,1)/100; lines.forEach(l=>{prodOrders[l.title]=(prodOrders[l.title]||0)+1;prodRevenue[l.title]=(prodRevenue[l.title]||0)+perLine}) })
   const topByO=Object.entries(prodOrders).sort((a,b)=>b[1]-a[1]).slice(0,10)
-  makeChart('ch-top-orders','bar',{
-    labels:topByO.map(([t])=>t.length>22?t.slice(0,20)+'…':t),
-    datasets:[{label:'Órdenes',data:topByO.map(([,v])=>v),backgroundColor:'rgba(71,200,255,.7)',borderColor:'#47c8ff',borderWidth:1,borderRadius:4}]
-  },{indexAxis:'y',responsive:true,maintainAspectRatio:false,
-    plugins:{legend:{display:false},tooltip:{backgroundColor:'#1e2127',titleColor:'#e8e9ec',bodyColor:'#6b7280',borderColor:'#2a2d35',borderWidth:1,callbacks:{label:ctx=>' '+ctx.parsed.x+' órdenes'}}},
-    scales:{x:{ticks:{color:'#6b7280',font:{family:"'Space Mono',monospace",size:10}},grid:{color:'#2a2d35'}},y:{ticks:{color:'#e8e9ec',font:{family:"'DM Sans',sans-serif",size:12}},grid:{display:false}}}
-  })
+  makeChart('ch-top-orders','bar',{labels:topByO.map(([t])=>t.length>22?t.slice(0,20)+'…':t),datasets:[{label:'Órdenes',data:topByO.map(([,v])=>v),backgroundColor:'rgba(71,200,255,.7)',borderColor:'#47c8ff',borderWidth:1,borderRadius:4}]},
+    {indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{backgroundColor:'#1e2127',titleColor:'#e8e9ec',bodyColor:'#6b7280',borderColor:'#2a2d35',borderWidth:1,callbacks:{label:ctx=>' '+ctx.parsed.x+' órdenes'}}},scales:{x:{ticks:{color:'#6b7280',font:{family:"'Space Mono',monospace",size:10}},grid:{color:'#2a2d35'}},y:{ticks:{color:'#e8e9ec',font:{family:"'DM Sans',sans-serif",size:12}},grid:{display:false}}}})
   const topByR=Object.entries(prodRevenue).sort((a,b)=>b[1]-a[1]).slice(0,10)
-  makeChart('ch-top-revenue','bar',{
-    labels:topByR.map(([t])=>t.length>22?t.slice(0,20)+'…':t),
-    datasets:[{label:'CHF',data:topByR.map(([,v])=>+v.toFixed(2)),backgroundColor:'rgba(71,255,156,.7)',borderColor:'#47ff9c',borderWidth:1,borderRadius:4}]
-  },{indexAxis:'y',responsive:true,maintainAspectRatio:false,
-    plugins:{legend:{display:false},tooltip:{backgroundColor:'#1e2127',titleColor:'#e8e9ec',bodyColor:'#6b7280',borderColor:'#2a2d35',borderWidth:1,callbacks:{label:ctx=>' CHF '+ctx.parsed.x.toLocaleString('de-CH',{minimumFractionDigits:2,maximumFractionDigits:2})}}},
-    scales:{x:{ticks:{color:'#6b7280',font:{family:"'Space Mono',monospace",size:10},callback:v=>'CHF '+v.toLocaleString('de-CH')},grid:{color:'#2a2d35'}},y:{ticks:{color:'#e8e9ec',font:{family:"'DM Sans',sans-serif",size:12}},grid:{display:false}}}
-  })
+  makeChart('ch-top-revenue','bar',{labels:topByR.map(([t])=>t.length>22?t.slice(0,20)+'…':t),datasets:[{label:'CHF',data:topByR.map(([,v])=>+v.toFixed(2)),backgroundColor:'rgba(71,255,156,.7)',borderColor:'#47ff9c',borderWidth:1,borderRadius:4}]},
+    {indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{backgroundColor:'#1e2127',titleColor:'#e8e9ec',bodyColor:'#6b7280',borderColor:'#2a2d35',borderWidth:1,callbacks:{label:ctx=>' CHF '+ctx.parsed.x.toLocaleString('de-CH',{minimumFractionDigits:2,maximumFractionDigits:2})}}},scales:{x:{ticks:{color:'#6b7280',font:{family:"'Space Mono',monospace",size:10},callback:v=>'CHF '+v.toLocaleString('de-CH')},grid:{color:'#2a2d35'}},y:{ticks:{color:'#e8e9ec',font:{family:"'DM Sans',sans-serif",size:12}},grid:{display:false}}}})
 
-  // 7. Por día de semana
   const wk=[0,0,0,0,0,0,0]
   orders.forEach(o=>{ if(o.starts_at) wk[new Date(o.starts_at).getDay()]++ })
-  makeChart('ch-weekday','bar',{
-    labels:DAYS_ES,
-    datasets:[{label:'Órdenes',data:wk,backgroundColor:wk.map((_,i)=>i===0||i===6?'rgba(255,182,71,.7)':'rgba(232,255,71,.7)'),borderColor:wk.map((_,i)=>i===0||i===6?'#ffb647':'#e8ff47'),borderWidth:1,borderRadius:4}]
-  },{responsive:true,maintainAspectRatio:false,
-    plugins:{legend:{display:false},tooltip:{backgroundColor:'#1e2127',titleColor:'#e8e9ec',bodyColor:'#6b7280',borderColor:'#2a2d35',borderWidth:1,callbacks:{label:ctx=>' '+ctx.parsed.y+' órdenes'}}},
-    scales:{x:{ticks:{color:'#6b7280',font:{family:"'Space Mono',monospace",size:11}},grid:{color:'#2a2d35'}},y:{ticks:{color:'#6b7280',font:{family:"'Space Mono',monospace",size:10}},grid:{color:'#2a2d35'}}}
-  })
+  makeChart('ch-weekday','bar',{labels:DAYS_ES,datasets:[{label:'Órdenes',data:wk,backgroundColor:wk.map((_,i)=>i===0||i===6?'rgba(255,182,71,.7)':'rgba(232,255,71,.7)'),borderColor:wk.map((_,i)=>i===0||i===6?'#ffb647':'#e8ff47'),borderWidth:1,borderRadius:4}]},
+    {responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{backgroundColor:'#1e2127',titleColor:'#e8e9ec',bodyColor:'#6b7280',borderColor:'#2a2d35',borderWidth:1,callbacks:{label:ctx=>' '+ctx.parsed.y+' órdenes'}}},scales:{x:{ticks:{color:'#6b7280',font:{family:"'Space Mono',monospace",size:11}},grid:{color:'#2a2d35'}},y:{ticks:{color:'#6b7280',font:{family:"'Space Mono',monospace",size:10}},grid:{color:'#2a2d35'}}}})
 }
 
 // ── Excel ─────────────────────────────────────────────────────
@@ -667,16 +616,7 @@ function renderCharts(orders){
 function exportExcel(){
   if(!filteredOrders.length) return
   const from=document.getElementById('f-from').value, till=document.getElementById('f-till').value
-  const rows=filteredOrders.map(o=>({
-    'N°':o.number||'','Cliente':o.customer_name||'',
-    'Productos':(o.lines||[]).map(l=>(l.quantity>1?l.quantity+'× ':'')+l.title).join(' | '),
-    'Estado':o.status||'','Desde':o.starts_at?fmtDateFull(o.starts_at):'','Hasta':o.stops_at?fmtDateFull(o.stops_at):'',
-    'Items':o.item_count??0,
-    'Precio CHF':+((o.price_in_cents||0)/100).toFixed(2),
-    'Total CHF':+((o.grand_total_in_cents||0)/100).toFixed(2),
-    'Por cobrar CHF':+((o.to_be_paid_in_cents||0)/100).toFixed(2),
-    'Estado pago':(o.payment_status||'').replace(/_/g,' '),
-  }))
+  const rows=filteredOrders.map(o=>({'N°':o.number||'','Cliente':o.customer_name||'','Productos':(o.lines||[]).map(l=>(l.quantity>1?l.quantity+'× ':'')+l.title).join(' | '),'Estado':o.status||'','Desde':o.starts_at?fmtDateFull(o.starts_at):'','Hasta':o.stops_at?fmtDateFull(o.stops_at):'','Items':o.item_count??0,'Precio CHF':+((o.price_in_cents||0)/100).toFixed(2),'Total CHF':+((o.grand_total_in_cents||0)/100).toFixed(2),'Por cobrar CHF':+((o.to_be_paid_in_cents||0)/100).toFixed(2),'Estado pago':(o.payment_status||'').replace(/_/g,' ')}))
   const ws=XLSX.utils.json_to_sheet(rows)
   ws['!cols']=[{wch:8},{wch:22},{wch:40},{wch:12},{wch:16},{wch:16},{wch:6},{wch:12},{wch:12},{wch:14},{wch:16}]
   const wb=XLSX.utils.book_new()
