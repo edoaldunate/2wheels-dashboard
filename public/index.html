@@ -165,6 +165,7 @@
       <thead><tr>
         <th onclick="sortBy('number',this)">#</th>
         <th onclick="sortBy('customer_name',this)">Cliente</th>
+        <th>Productos</th>
         <th onclick="sortBy('status',this)">Estado</th>
         <th onclick="sortBy('starts_at',this)">Desde</th>
         <th onclick="sortBy('stops_at',this)">Hasta</th>
@@ -316,7 +317,8 @@ function renderAll() {
     const dc = o.to_be_paid_in_cents>0 ? 'color:var(--warn)' : 'color:var(--muted)'
     return `<tr>
       <td class="cell-num">#${o.number||'—'}</td>
-      <td style="font-size:13px;font-weight:500;max-width:180px;overflow:hidden;text-overflow:ellipsis" title="${o.customer_name}">${o.customer_name}</td>
+      <td style="font-size:13px;font-weight:500;max-width:160px;overflow:hidden;text-overflow:ellipsis" title="${o.customer_name}">${o.customer_name}</td>
+      <td style="max-width:200px">${renderLines(o.lines)}</td>
       <td><span class="badge ${o.status||''}">${o.status||'—'}</span></td>
       <td class="cell-date">${fmtDate(o.starts_at)}</td>
       <td class="cell-date">${fmtDate(o.stops_at)}</td>
@@ -356,6 +358,12 @@ function sortBy(col,th){
   document.querySelectorAll('th').forEach(t=>t.classList.remove('sorted'))
   if(th) th.classList.add('sorted')
   if(allOrders.length) renderAll()
+}
+function renderLines(lines) {
+  if (!lines || lines.length === 0) return '<span style="color:var(--muted);font-size:11px">—</span>'
+  return lines.map(l =>
+    `<span style="display:inline-block;font-size:11px;font-family:var(--mono);background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:2px 7px;margin:1px 2px 1px 0;white-space:nowrap">${l.quantity > 1 ? l.quantity+'× ' : ''}${l.title}</span>`
+  ).join('')
 }
 function fmtCHF(n){ return (n||0).toLocaleString('de-CH',{minimumFractionDigits:2,maximumFractionDigits:2}) }
 function fmtDate(iso){
