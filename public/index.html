@@ -59,7 +59,7 @@
 
   /* Input búsqueda cliente */
   .search-wrap{position:relative;display:flex;align-items:center}
-  .search-wrap input[type="text"]{background:var(--surface2);border:1px solid var(--border);color:var(--text);font-family:var(--sans);font-size:13px;padding:7px 32px 7px 10px;border-radius:6px;outline:none;transition:border-color .15s;width:200px}
+  .search-wrap input[type="text"]{background:var(--surface2);border:1px solid var(--border);color:var(--text);font-family:var(--sans);font-size:13px;padding:7px 32px 7px 10px;border-radius:6px;outline:none;transition:border-color .15s,width .2s;width:200px}
   .search-wrap input[type="text"]:focus{border-color:var(--accent);width:260px}
   .search-wrap input[type="text"]::placeholder{color:var(--muted)}
   .search-wrap .clear-btn{position:absolute;right:8px;background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;line-height:1;padding:0;display:none}
@@ -101,6 +101,8 @@
   .cell-date{font-family:var(--mono);font-size:12px;color:var(--muted)}
   .cell-chf{font-family:var(--mono);font-size:13px;text-align:right}
   mark{background:rgba(232,255,71,.25);color:var(--accent);border-radius:2px;padding:0 1px}
+  .cust-link{cursor:pointer;color:inherit;text-decoration:none;border-bottom:1px dashed var(--border);transition:border-color .15s,color .15s}
+  .cust-link:hover{color:var(--accent2);border-color:var(--accent2)}
 
   .badge{display:inline-flex;align-items:center;font-family:var(--mono);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;padding:3px 8px;border-radius:4px;border:1px solid}
   .badge.reserved{color:#47c8ff;border-color:rgba(71,200,255,.3);background:rgba(71,200,255,.08)}
@@ -121,6 +123,30 @@
   .chart-title{font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
   .chart-box{position:relative;height:260px}
   .chart-box.tall{height:320px}
+
+  /* Modal cliente */
+  .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(3px);z-index:1000;display:flex;align-items:center;justify-content:center;padding:24px;opacity:0;pointer-events:none;transition:opacity .2s}
+  .modal-overlay.open{opacity:1;pointer-events:all}
+  .modal{background:var(--surface);border:1px solid var(--border);border-radius:12px;width:100%;max-width:440px;padding:28px;display:flex;flex-direction:column;gap:20px;transform:translateY(12px);transition:transform .2s}
+  .modal-overlay.open .modal{transform:translateY(0)}
+  .modal-header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+  .modal-name{font-size:18px;font-weight:600;line-height:1.3}
+  .modal-close{background:none;border:none;color:var(--muted);cursor:pointer;font-size:20px;line-height:1;padding:2px;flex-shrink:0;transition:color .15s}
+  .modal-close:hover{color:var(--text)}
+  .modal-fields{display:flex;flex-direction:column;gap:12px}
+  .modal-field{display:flex;flex-direction:column;gap:3px}
+  .modal-field-label{font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+  .modal-field-value{font-size:13px;color:var(--text);word-break:break-word}
+  .modal-field-value a{color:var(--accent2);text-decoration:none}
+  .modal-field-value a:hover{text-decoration:underline}
+  .modal-field-value.muted{color:var(--muted);font-style:italic}
+  .modal-divider{height:1px;background:var(--border);margin:4px 0}
+  .modal-orders-title{font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+  .modal-order-list{display:flex;flex-direction:column;gap:6px;max-height:180px;overflow-y:auto}
+  .modal-order-item{display:flex;align-items:center;gap:8px;font-size:12px;padding:6px 8px;border-radius:6px;background:var(--surface2)}
+  .modal-order-num{font-family:var(--mono);color:var(--accent);font-size:11px;font-weight:700;flex-shrink:0}
+  .modal-order-dates{color:var(--muted);font-family:var(--mono);font-size:10px;flex-shrink:0}
+  .modal-order-chf{font-family:var(--mono);font-size:11px;margin-left:auto;flex-shrink:0}
 
   .state-msg{text-align:center;padding:64px 32px;font-family:var(--mono);font-size:13px;color:var(--muted)}
   .state-msg .big{font-size:32px;margin-bottom:12px;display:block}
@@ -149,6 +175,20 @@
 </head>
 <body>
 
+<!-- Modal cliente -->
+<div class="modal-overlay" id="cust-modal" onclick="closeModal(event)">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-name" id="m-name">—</div>
+      <button class="modal-close" onclick="closeModalDirect()">✕</button>
+    </div>
+    <div class="modal-fields" id="m-fields"></div>
+    <div class="modal-divider"></div>
+    <div class="modal-orders-title">Órdenes en el período</div>
+    <div class="modal-order-list" id="m-orders"></div>
+  </div>
+</div>
+
 <header>
   <div class="logo"><div class="logo-icon">⊗</div>2WHEELS / DASHBOARD</div>
   <div id="status-pill" class="pill idle"><span class="dot"></span><span id="status-text">listo</span></div>
@@ -168,7 +208,6 @@
   </div>
 
   <div class="toolbar">
-    <!-- Fila 1: fechas + accesos rápidos -->
     <div class="toolbar-row">
       <label>Desde</label><input type="date" id="f-from">
       <label>Hasta</label><input type="date" id="f-till">
@@ -182,7 +221,6 @@
       <button class="btn" id="btn-load" onclick="loadOrders()">↓ Cargar</button>
       <button class="btn-excel" id="btn-excel" onclick="exportExcel()" disabled>⬇ Excel</button>
     </div>
-    <!-- Fila 2: Estado + búsqueda cliente -->
     <div class="toolbar-row">
       <label>Estado</label>
       <select id="f-status">
@@ -198,7 +236,6 @@
         <button class="clear-btn" id="f-customer-clear" onclick="clearCustomer()" title="Limpiar">✕</button>
       </div>
     </div>
-    <!-- Fila 3: chips Pago -->
     <div class="chips-row">
       <span class="chips-label">Pago</span>
       <div class="chips-group" id="payment-chips">
@@ -209,7 +246,6 @@
       </div>
       <button class="chips-reset" id="pay-chips-reset" onclick="resetPayChips()" style="display:none">Limpiar</button>
     </div>
-    <!-- Fila 4: chips Producto (aparece tras cargar) -->
     <div class="chips-row" id="product-chips-row" style="display:none">
       <span class="chips-label">Producto</span>
       <div class="chips-group" id="product-chips"></div>
@@ -228,7 +264,6 @@
   <div id="progress-wrap" style="display:none"><div class="progress-bg"><div class="progress-bar" id="progress-bar" style="width:0%"></div></div></div>
   <div id="error-banner" class="error-banner"></div>
 
-  <!-- Vista DATOS -->
   <div id="view-data">
     <div class="table-wrap">
       <div class="state-msg" id="empty-state"><span class="big">⊗</span>Selecciona fechas y presiona "Cargar"</div>
@@ -251,37 +286,15 @@
     </div>
   </div>
 
-  <!-- Vista GRÁFICOS -->
   <div id="view-charts" style="display:none">
     <div class="charts-wrap">
-      <div class="chart-card full">
-        <div class="chart-title">Ingresos por mes (CHF)</div>
-        <div class="chart-box"><canvas id="ch-monthly"></canvas></div>
-      </div>
-      <div class="chart-card full">
-        <div class="chart-title">Ventas por mes — agrupación por familia de productos (CHF)</div>
-        <div class="chart-box tall"><canvas id="ch-monthly-family"></canvas></div>
-      </div>
-      <div class="chart-card">
-        <div class="chart-title">Órdenes por estado</div>
-        <div class="chart-box"><canvas id="ch-status"></canvas></div>
-      </div>
-      <div class="chart-card">
-        <div class="chart-title">Estado de pagos</div>
-        <div class="chart-box"><canvas id="ch-payment"></canvas></div>
-      </div>
-      <div class="chart-card">
-        <div class="chart-title">Top productos — N° de órdenes</div>
-        <div class="chart-box tall"><canvas id="ch-top-orders"></canvas></div>
-      </div>
-      <div class="chart-card">
-        <div class="chart-title">Top productos — Ingresos CHF</div>
-        <div class="chart-box tall"><canvas id="ch-top-revenue"></canvas></div>
-      </div>
-      <div class="chart-card full">
-        <div class="chart-title">Órdenes por día de la semana</div>
-        <div class="chart-box"><canvas id="ch-weekday"></canvas></div>
-      </div>
+      <div class="chart-card full"><div class="chart-title">Ingresos por mes (CHF)</div><div class="chart-box"><canvas id="ch-monthly"></canvas></div></div>
+      <div class="chart-card full"><div class="chart-title">Ventas por mes — agrupación por familia de productos (CHF)</div><div class="chart-box tall"><canvas id="ch-monthly-family"></canvas></div></div>
+      <div class="chart-card"><div class="chart-title">Órdenes por estado</div><div class="chart-box"><canvas id="ch-status"></canvas></div></div>
+      <div class="chart-card"><div class="chart-title">Estado de pagos</div><div class="chart-box"><canvas id="ch-payment"></canvas></div></div>
+      <div class="chart-card"><div class="chart-title">Top productos — N° de órdenes</div><div class="chart-box tall"><canvas id="ch-top-orders"></canvas></div></div>
+      <div class="chart-card"><div class="chart-title">Top productos — Ingresos CHF</div><div class="chart-box tall"><canvas id="ch-top-revenue"></canvas></div></div>
+      <div class="chart-card full"><div class="chart-title">Órdenes por día de la semana</div><div class="chart-box"><canvas id="ch-weekday"></canvas></div></div>
     </div>
   </div>
 
@@ -305,11 +318,7 @@ let currentView = 'data'
 const productStates = {}
 const paymentStates = { payment_due:null, partially_paid:null, paid:null, overpaid:null }
 
-const PALETTE = [
-  '#e8ff47','#47c8ff','#47ff9c','#ffb647','#ff5f57',
-  '#d0a0ff','#ff8c47','#47ffe8','#ff47b8','#a8ff47',
-  '#ffdc47','#4778ff','#ff4747','#47ffa0','#c847ff'
-]
+const PALETTE = ['#e8ff47','#47c8ff','#47ff9c','#ffb647','#ff5f57','#d0a0ff','#ff8c47','#47ffe8','#ff47b8','#a8ff47','#ffdc47','#4778ff','#ff4747','#47ffa0','#c847ff']
 const CHART_DEFAULTS = {
   color:'#6b7280',
   plugins:{
@@ -328,6 +337,7 @@ window.addEventListener('DOMContentLoaded', () => {
   setThisMonth()
   document.getElementById('f-status').addEventListener('change', () => { if(allOrders.length) renderAll() })
 })
+document.addEventListener('keydown', e => { if(e.key==='Escape') closeModalDirect() })
 
 // ── Navegación ───────────────────────────────────────────────
 
@@ -370,13 +380,64 @@ function clearCustomer() {
   if(allOrders.length) renderAll()
   inp.focus()
 }
-
-// Resalta la coincidencia del texto buscado en el nombre del cliente
 function highlightName(name, query) {
   if(!query) return name
   const idx = name.toLowerCase().indexOf(query.toLowerCase())
   if(idx === -1) return name
-  return name.slice(0,idx) + '<mark>' + name.slice(idx, idx+query.length) + '</mark>' + name.slice(idx+query.length)
+  return name.slice(0,idx)+'<mark>'+name.slice(idx,idx+query.length)+'</mark>'+name.slice(idx+query.length)
+}
+
+// ── Modal cliente ─────────────────────────────────────────────
+
+function openCustomerModal(customerId) {
+  // Reunir todas las órdenes del mismo cliente en el período filtrado
+  const orders = filteredOrders.filter(o => o.customer_id === customerId)
+  if(!orders.length) return
+  const o = orders[0]  // datos de cliente desde la primera orden
+
+  document.getElementById('m-name').textContent = o.customer_name || '—'
+
+  // Construir dirección
+  const parts = [o.customer_address1, o.customer_address2, o.customer_city, o.customer_region, o.customer_zipcode, o.customer_country].filter(Boolean)
+  const address = parts.join(', ') || null
+
+  const fields = [
+    { label:'Email',     value: o.customer_email,  link: o.customer_email ? 'mailto:'+o.customer_email : null },
+    { label:'Teléfono',  value: o.customer_phone,  link: o.customer_phone ? 'tel:'+o.customer_phone : null },
+    { label:'Dirección', value: address },
+    { label:'Notas',     value: o.customer_notes },
+  ]
+
+  document.getElementById('m-fields').innerHTML = fields
+    .filter(f => f.value)
+    .map(f => `<div class="modal-field">
+      <div class="modal-field-label">${f.label}</div>
+      <div class="modal-field-value">${f.link ? `<a href="${f.link}">${f.value}</a>` : f.value}</div>
+    </div>`).join('')
+    || '<div class="modal-field"><div class="modal-field-value muted">Sin datos adicionales</div></div>'
+
+  // Lista de órdenes del cliente
+  document.getElementById('m-orders').innerHTML = orders.map(ord => {
+    const total = (ord.grand_total_in_cents||0)/100
+    const due   = (ord.to_be_paid_in_cents||0)/100
+    const color = due>0 ? 'var(--warn)' : 'var(--ok)'
+    return `<div class="modal-order-item">
+      <span class="modal-order-num">#${ord.number}</span>
+      <span class="modal-order-dates">${fmtDate(ord.starts_at)} → ${fmtDate(ord.stops_at)}</span>
+      <span class="modal-order-chf" style="color:${color}">CHF ${fmtCHF(total)}</span>
+    </div>`
+  }).join('')
+
+  document.getElementById('cust-modal').classList.add('open')
+  document.body.style.overflow = 'hidden'
+}
+
+function closeModal(e) {
+  if(e.target === document.getElementById('cust-modal')) closeModalDirect()
+}
+function closeModalDirect() {
+  document.getElementById('cust-modal').classList.remove('open')
+  document.body.style.overflow = ''
 }
 
 // ── Carga ────────────────────────────────────────────────────
@@ -427,8 +488,7 @@ async function loadOrders() {
 function cyclePayChip(chip) {
   const key=chip.dataset.pay, cur=paymentStates[key]
   const next=cur===null?'include':cur==='include'?'exclude':null
-  paymentStates[key]=next
-  chip.className='pchip'+(next?' '+next:'')
+  paymentStates[key]=next; chip.className='pchip'+(next?' '+next:'')
   syncPayResetBtn(); if(allOrders.length) renderAll()
 }
 function resetPayChips() {
@@ -437,7 +497,7 @@ function resetPayChips() {
   syncPayResetBtn(); if(allOrders.length) renderAll()
 }
 function syncPayResetBtn() {
-  document.getElementById('pay-chips-reset').style.display = Object.values(paymentStates).some(v=>v!==null)?'inline-block':'none'
+  document.getElementById('pay-chips-reset').style.display=Object.values(paymentStates).some(v=>v!==null)?'inline-block':'none'
 }
 
 // ── Chips PRODUCTO ───────────────────────────────────────────
@@ -483,7 +543,6 @@ function getFiltered(){
   const payExcluded  = Object.entries(paymentStates).filter(([,v])=>v==='exclude').map(([k])=>k)
   const prodIncluded = Object.entries(productStates).filter(([,v])=>v==='include').map(([k])=>k)
   const prodExcluded = Object.entries(productStates).filter(([,v])=>v==='exclude').map(([k])=>k)
-
   return allOrders.filter(o=>{
     if(sf && o.status!==sf) return false
     if(cq && !(o.customer_name||'').toLowerCase().includes(cq)) return false
@@ -528,9 +587,14 @@ function renderAll(){
   document.getElementById('orders-tbody').innerHTML = flat.map(o=>{
     const dc=o.to_be_paid_in_cents>0?'color:var(--warn)':'color:var(--muted)'
     const displayName = highlightName(o.customer_name||'', cq)
+    const custId = o.customer_id ? `data-custid="${o.customer_id}"` : ''
+    const custClass = o.customer_id ? 'cust-link' : ''
+    const custClick = o.customer_id ? `onclick="openCustomerModal('${o.customer_id}')"` : ''
     return `<tr>
       <td class="cell-num">#${o.number||'—'}</td>
-      <td style="font-size:13px;font-weight:500;max-width:160px;overflow:hidden;text-overflow:ellipsis" title="${o.customer_name}">${displayName}</td>
+      <td style="font-size:13px;font-weight:500;max-width:160px;overflow:hidden;text-overflow:ellipsis" title="${o.customer_name}">
+        <span class="${custClass}" ${custId} ${custClick}>${displayName}</span>
+      </td>
       <td style="max-width:200px">${renderLines(o.lines)}</td>
       <td><span class="badge ${o.status||''}">${o.status||'—'}</span></td>
       <td class="cell-date">${fmtDate(o.starts_at)}</td>
@@ -616,9 +680,9 @@ function renderCharts(orders){
 function exportExcel(){
   if(!filteredOrders.length) return
   const from=document.getElementById('f-from').value, till=document.getElementById('f-till').value
-  const rows=filteredOrders.map(o=>({'N°':o.number||'','Cliente':o.customer_name||'','Productos':(o.lines||[]).map(l=>(l.quantity>1?l.quantity+'× ':'')+l.title).join(' | '),'Estado':o.status||'','Desde':o.starts_at?fmtDateFull(o.starts_at):'','Hasta':o.stops_at?fmtDateFull(o.stops_at):'','Items':o.item_count??0,'Precio CHF':+((o.price_in_cents||0)/100).toFixed(2),'Total CHF':+((o.grand_total_in_cents||0)/100).toFixed(2),'Por cobrar CHF':+((o.to_be_paid_in_cents||0)/100).toFixed(2),'Estado pago':(o.payment_status||'').replace(/_/g,' ')}))
+  const rows=filteredOrders.map(o=>({'N°':o.number||'','Cliente':o.customer_name||'','Email':o.customer_email||'','Teléfono':o.customer_phone||'','País':o.customer_country||'','Ciudad':o.customer_city||'','Productos':(o.lines||[]).map(l=>(l.quantity>1?l.quantity+'× ':'')+l.title).join(' | '),'Estado':o.status||'','Desde':o.starts_at?fmtDateFull(o.starts_at):'','Hasta':o.stops_at?fmtDateFull(o.stops_at):'','Items':o.item_count??0,'Precio CHF':+((o.price_in_cents||0)/100).toFixed(2),'Total CHF':+((o.grand_total_in_cents||0)/100).toFixed(2),'Por cobrar CHF':+((o.to_be_paid_in_cents||0)/100).toFixed(2),'Estado pago':(o.payment_status||'').replace(/_/g,' ')}))
   const ws=XLSX.utils.json_to_sheet(rows)
-  ws['!cols']=[{wch:8},{wch:22},{wch:40},{wch:12},{wch:16},{wch:16},{wch:6},{wch:12},{wch:12},{wch:14},{wch:16}]
+  ws['!cols']=[{wch:8},{wch:22},{wch:26},{wch:16},{wch:14},{wch:14},{wch:40},{wch:12},{wch:16},{wch:16},{wch:6},{wch:12},{wch:12},{wch:14},{wch:16}]
   const wb=XLSX.utils.book_new()
   XLSX.utils.book_append_sheet(wb,ws,'Órdenes')
   XLSX.writeFile(wb,`2wheels_${from}_${till}.xlsx`)

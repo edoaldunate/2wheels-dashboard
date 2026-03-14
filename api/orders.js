@@ -66,7 +66,6 @@ export default async function handler(req, res) {
 
     if (orderIds.length > 0) {
       const lp = new URLSearchParams()
-      // Filtrar lines que pertenezcan a cualquiera de estas órdenes
       orderIds.forEach(id => lp.append('filter[order_id][]', id))
       lp.append('fields[lines]', 'title,quantity,order_id,price_in_cents')
       lp.append('page[size]', '100')
@@ -79,7 +78,6 @@ export default async function handler(req, res) {
           const oid = a.order_id
           if (!oid) continue
           if (!linesMap[oid]) linesMap[oid] = []
-          // Solo incluir lines que son productos (tienen título, no son líneas de descuento etc)
           if (a.title) {
             linesMap[oid].push({
               title:    a.title,
@@ -95,13 +93,24 @@ export default async function handler(req, res) {
       const a = item.attributes || {}
       const custRel = item.relationships?.customer?.data
       const custObj = custRel ? included.find(i => i.type === 'customers' && i.id === custRel.id) : null
+      const ca = custObj?.attributes || {}
 
       return {
         id:                   item.id,
         number:               a.number,
         status:               a.status,
         payment_status:       a.payment_status,
-        customer_name:        custObj?.attributes?.name || '—',
+        customer_name:        ca.name       || '—',
+        customer_email:       ca.email      || null,
+        customer_phone:       ca.phone      || null,
+        customer_address1:    ca.address1   || null,
+        customer_address2:    ca.address2   || null,
+        customer_city:        ca.city       || null,
+        customer_region:      ca.region     || null,
+        customer_zipcode:     ca.zipcode    || null,
+        customer_country:     ca.country    || null,
+        customer_notes:       ca.notes      || null,
+        customer_id:          custObj?.id   || null,
         starts_at:            a.starts_at,
         stops_at:             a.stops_at,
         item_count:           a.item_count,
