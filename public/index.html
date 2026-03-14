@@ -34,7 +34,9 @@
   .src-tag.live{background:rgba(71,255,156,.15);color:var(--ok);border:1px solid rgba(71,255,156,.3)}
   .src-tag.soon{background:rgba(107,114,128,.12);color:var(--muted);border:1px solid rgba(107,114,128,.2)}
 
-  .toolbar{padding:16px 32px;display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--border);flex-wrap:wrap}
+  .toolbar{padding:0 32px;display:flex;flex-direction:column;border-bottom:1px solid var(--border)}
+  .toolbar-row{display:flex;align-items:center;gap:12px;padding:10px 0;flex-wrap:wrap}
+  .toolbar-row+.toolbar-row{border-top:1px solid var(--border)}
   .toolbar label{font-size:11px;font-family:var(--mono);color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
   .toolbar input[type="date"],.toolbar select{background:var(--surface2);border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:12px;padding:7px 10px;border-radius:6px;cursor:pointer;outline:none;transition:border-color .15s}
   .toolbar input:focus,.toolbar select:focus{border-color:var(--accent)}
@@ -121,35 +123,41 @@
 <!-- BOOQABLE -->
 <div id="src-booqable">
   <div class="toolbar">
-    <label>Desde</label><input type="date" id="f-from">
-    <label>Hasta</label><input type="date" id="f-till">
-    <label>Estado</label>
-    <select id="f-status">
-      <option value="">Todos</option>
-      <option value="reserved">Reserved</option>
-      <option value="started">Started</option>
-      <option value="returned">Returned</option>
-      <option value="concept">Concept</option>
-    </select>
-    <label>Pago</label>
-    <select id="f-payment">
-      <option value="">Todos</option>
-      <option value="payment_due">Payment due</option>
-      <option value="partially_paid">Partially paid</option>
-      <option value="paid">Paid</option>
-      <option value="overpaid">Overpaid</option>
-    </select>
-    <label>Producto</label>
-    <select id="f-product">
-      <option value="">Todos</option>
-    </select>
-    <div class="sep"></div>
-    <button class="btn-ghost" onclick="setToday()">Hoy</button>
-    <button class="btn-ghost" onclick="setThisMonth()">Este mes</button>
-    <button class="btn-ghost" onclick="setLastMonth()">Mes pasado</button>
-    <button class="btn-ghost" onclick="setThisQuarter()">Trimestre</button>
-    <button class="btn-ghost" onclick="setThisYear()">Este año</button>
-    <button class="btn" id="btn-load" onclick="loadOrders()">↓ Cargar</button>
+    <!-- Fila 1: fechas + accesos rápidos + cargar -->
+    <div class="toolbar-row">
+      <label>Desde</label><input type="date" id="f-from">
+      <label>Hasta</label><input type="date" id="f-till">
+      <div class="sep"></div>
+      <button class="btn-ghost" onclick="setToday()">Hoy</button>
+      <button class="btn-ghost" onclick="setThisMonth()">Este mes</button>
+      <button class="btn-ghost" onclick="setLastMonth()">Mes pasado</button>
+      <button class="btn-ghost" onclick="setThisQuarter()">Trimestre</button>
+      <button class="btn-ghost" onclick="setThisYear()">Este año</button>
+      <button class="btn" id="btn-load" onclick="loadOrders()">↓ Cargar</button>
+    </div>
+    <!-- Fila 2: filtros -->
+    <div class="toolbar-row">
+      <label>Estado</label>
+      <select id="f-status">
+        <option value="">Todos</option>
+        <option value="reserved">Reserved</option>
+        <option value="started">Started</option>
+        <option value="returned">Returned</option>
+        <option value="concept">Concept</option>
+      </select>
+      <label>Pago</label>
+      <select id="f-payment">
+        <option value="">Todos</option>
+        <option value="payment_due">Payment due</option>
+        <option value="partially_paid">Partially paid</option>
+        <option value="paid">Paid</option>
+        <option value="overpaid">Overpaid</option>
+      </select>
+      <label>Producto</label>
+      <select id="f-product">
+        <option value="">Todos los productos</option>
+      </select>
+    </div>
   </div>
 
   <div class="stats-grid">
