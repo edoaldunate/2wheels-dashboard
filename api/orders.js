@@ -143,22 +143,23 @@ export default async function handler(req, res) {
       if (i + PAGE_SIZE < allOrderItems.length) await sleep(PAGE_DELAY)
     }
 
-    // ── 3. Traer product_groups con sus collections ───────────────────────
+    // ── 3. Traer collections con sus product_groups ───────────────────────
     const pgCollections = {}  // productGroupId → string[]
     try {
-      const pgRes = await fetchWithRetry(
-        `${base}/product_groups?include=collections&fields[product_groups]=id,name&fields[collections]=id,name&page[size]=100`,
+      const collRes = await fetchWithRetry(
+        `${base}/collections?include=product_groups&fields[collections]=id,name&fields[product_groups]=id&page[size]=100`,
         { headers }
       )
-      if (pgRes && pgRes.ok) {
-        const pgRaw = await pgRes.json()
-        const collNames = {}
-        for (const inc of (pgRaw.included || [])) {
-          if (inc.type === 'collections') collNames[inc.id] = inc.attributes?.name
-        }
-        for (const pg of (pgRaw.data || [])) {
-          const rels = pg.relationships?.collections?.data || []
-          pgCollections[pg.id] = rels.map(c => collNames[c.id]).filter(Boolean)
+      if (collRes && collRes.ok) {
+        const collRaw = await collRes.json()
+        for (const coll of (collRaw.data || [])) {
+          const collName = coll.attributes?.name
+          if (!collName || collName === 'All') continue  // excluir la colección sistema "All"
+          const pgRels = coll.relationships?.product_groups?.data || []
+          for (const pg of pgRels) {
+            if (!pgCollections[pg.id]) pgCollections[pg.id] = []
+            if (!pgCollections[pg.id].includes(collName)) pgCollections[pg.id].push(collName)
+          }
         }
       }
     } catch(_) { /* no bloquea si falla */ }
