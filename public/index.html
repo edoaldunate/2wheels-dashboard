@@ -58,7 +58,6 @@
   .btn-excel:hover{background:#1d6f42;color:#fff}
   .btn-excel:disabled{opacity:.35;cursor:not-allowed}
 
-  /* Input búsqueda cliente */
   .search-wrap{position:relative;display:flex;align-items:center}
   .search-wrap input[type="text"]{background:var(--surface2);border:1px solid var(--border);color:var(--text);font-family:var(--sans);font-size:13px;padding:7px 32px 7px 10px;border-radius:6px;outline:none;transition:border-color .15s,width .2s;width:200px}
   .search-wrap input[type="text"]:focus{border-color:var(--accent);width:260px}
@@ -66,7 +65,6 @@
   .search-wrap .clear-btn{position:absolute;right:8px;background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;line-height:1;padding:0;display:none}
   .search-wrap .clear-btn:hover{color:var(--text)}
 
-  /* Chips genéricos */
   .chips-row{display:flex;align-items:center;gap:8px;padding:10px 0;flex-wrap:wrap;border-top:1px solid var(--border)}
   .chips-label{font-size:11px;font-family:var(--mono);color:var(--muted);text-transform:uppercase;letter-spacing:.06em;flex-shrink:0}
   .chips-group{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
@@ -125,7 +123,6 @@
   .chart-box{position:relative;height:260px}
   .chart-box.tall{height:320px}
 
-  /* Modal cliente */
   .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(3px);z-index:1000;display:flex;align-items:center;justify-content:center;padding:24px;opacity:0;pointer-events:none;transition:opacity .2s}
   .modal-overlay.open{opacity:1;pointer-events:all}
   .modal{background:var(--surface);border:1px solid var(--border);border-radius:12px;width:100%;max-width:440px;padding:28px;display:flex;flex-direction:column;gap:20px;transform:translateY(12px);transition:transform .2s}
@@ -176,7 +173,6 @@
 </head>
 <body>
 
-<!-- Modal cliente -->
 <div class="modal-overlay" id="cust-modal" onclick="closeModal(event)">
   <div class="modal">
     <div class="modal-header">
@@ -202,7 +198,6 @@
 </div>
 
 <div id="src-booqable">
-
   <div class="sub-tabs">
     <div class="sub-tab active" data-view="data" onclick="switchView('data')">Datos</div>
     <div class="sub-tab" data-view="charts" onclick="switchView('charts')">Gráficos</div>
@@ -298,7 +293,6 @@
       <div class="chart-card full"><div class="chart-title">Órdenes por día de la semana</div><div class="chart-box"><canvas id="ch-weekday"></canvas></div></div>
     </div>
   </div>
-
 </div>
 
 <div id="src-sheets" style="display:none">
@@ -319,7 +313,6 @@ let currentView = 'data'
 const productStates = {}
 const paymentStates = { payment_due:null, partially_paid:null, paid:null, overpaid:null }
 
-// Objetivo de ingresos por mes (0=enero … 11=diciembre)
 const MONTHLY_TARGET = [0, 0, 871, 4600, 5376, 9157, 13657, 11034, 7500, 3351, 400, 0]
 
 const PALETTE = ['#e8ff47','#47c8ff','#47ff9c','#ffb647','#ff5f57','#d0a0ff','#ff8c47','#47ffe8','#ff47b8','#a8ff47','#ffdc47','#4778ff','#ff4747','#47ffa0','#c847ff']
@@ -343,8 +336,6 @@ window.addEventListener('DOMContentLoaded', () => {
 })
 document.addEventListener('keydown', e => { if(e.key==='Escape') closeModalDirect() })
 
-// ── Navegación ───────────────────────────────────────────────
-
 function switchSource(src) {
   document.querySelectorAll('.src-tab').forEach(t => t.classList.toggle('active', t.dataset.src===src))
   ;['booqable','sheets','stripe'].forEach(s => {
@@ -359,8 +350,6 @@ function switchView(view) {
   if(view==='charts' && filteredOrders.length) renderCharts(filteredOrders)
 }
 
-// ── Quick filters de fecha ───────────────────────────────────────
-
 function pad(n){ return String(n).padStart(2,'0') }
 function fmt(d){ return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()) }
 function setDates(f,t){ document.getElementById('f-from').value=f; document.getElementById('f-till').value=t }
@@ -373,18 +362,14 @@ function setThisQuarter(){ const n=new Date(),y=n.getFullYear(),m=n.getMonth(); 
 function setThisYear(){ const y=new Date().getFullYear(); setDates(y+'-01-01',y+'-12-31'); setActiveRange('thisYear') }
 function setLastYear(){ const y=new Date().getFullYear()-1; setDates(y+'-01-01',y+'-12-31'); setActiveRange('lastYear') }
 
-// ── Búsqueda cliente ─────────────────────────────────────────
-
 function onCustomerInput(input) {
   document.getElementById('f-customer-clear').style.display = input.value ? 'block' : 'none'
   if(allOrders.length) renderAll()
 }
 function clearCustomer() {
   const inp = document.getElementById('f-customer')
-  inp.value = ''
-  document.getElementById('f-customer-clear').style.display = 'none'
-  if(allOrders.length) renderAll()
-  inp.focus()
+  inp.value = ''; document.getElementById('f-customer-clear').style.display = 'none'
+  if(allOrders.length) renderAll(); inp.focus()
 }
 function highlightName(name, query) {
   if(!query) return name
@@ -393,58 +378,33 @@ function highlightName(name, query) {
   return name.slice(0,idx)+'<mark>'+name.slice(idx,idx+query.length)+'</mark>'+name.slice(idx+query.length)
 }
 
-// ── Modal cliente ─────────────────────────────────────────────
-
 function openCustomerModal(customerId) {
   const orders = filteredOrders.filter(o => o.customer_id === customerId)
   if(!orders.length) return
   const o = orders[0]
-
   document.getElementById('m-name').textContent = o.customer_name || '—'
-
   const parts = [o.customer_address1, o.customer_address2, o.customer_city, o.customer_region, o.customer_zipcode, o.customer_country].filter(Boolean)
   const address = parts.join(', ') || null
-
   const fields = [
     { label:'Email',     value: o.customer_email,  link: o.customer_email ? 'mailto:'+o.customer_email : null },
     { label:'Teléfono',  value: o.customer_phone,  link: o.customer_phone ? 'tel:'+o.customer_phone : null },
     { label:'Dirección', value: address },
     { label:'Notas',     value: o.customer_notes },
   ]
-
-  document.getElementById('m-fields').innerHTML = fields
-    .filter(f => f.value)
-    .map(f => `<div class="modal-field">
-      <div class="modal-field-label">${f.label}</div>
-      <div class="modal-field-value">${f.link ? `<a href="${f.link}">${f.value}</a>` : f.value}</div>
-    </div>`).join('')
+  document.getElementById('m-fields').innerHTML = fields.filter(f=>f.value)
+    .map(f=>`<div class="modal-field"><div class="modal-field-label">${f.label}</div><div class="modal-field-value">${f.link?`<a href="${f.link}">${f.value}</a>`:f.value}</div></div>`).join('')
     || '<div class="modal-field"><div class="modal-field-value muted">Sin datos adicionales</div></div>'
-
-  document.getElementById('m-orders').innerHTML = orders.map(ord => {
-    const total = (ord.grand_total_in_cents||0)/100
-    const due   = (ord.to_be_paid_in_cents||0)/100
-    const color = due>0 ? 'var(--warn)' : 'var(--ok)'
-    return `<div class="modal-order-item">
-      <span class="modal-order-num">#${ord.number}</span>
-      <span class="modal-order-dates">${fmtDate(ord.starts_at)} → ${fmtDate(ord.stops_at)}</span>
-      <span class="modal-order-chf" style="color:${color}">CHF ${fmtCHF(total)}</span>
-    </div>`
+  document.getElementById('m-orders').innerHTML = orders.map(ord=>{
+    const total=(ord.grand_total_in_cents||0)/100, due=(ord.to_be_paid_in_cents||0)/100
+    return `<div class="modal-order-item"><span class="modal-order-num">#${ord.number}</span><span class="modal-order-dates">${fmtDate(ord.starts_at)} → ${fmtDate(ord.stops_at)}</span><span class="modal-order-chf" style="color:${due>0?'var(--warn)':'var(--ok)'}">CHF ${fmtCHF(total)}</span></div>`
   }).join('')
-
   document.getElementById('cust-modal').classList.add('open')
   document.body.style.overflow = 'hidden'
 }
+function closeModal(e){ if(e.target===document.getElementById('cust-modal')) closeModalDirect() }
+function closeModalDirect(){ document.getElementById('cust-modal').classList.remove('open'); document.body.style.overflow='' }
 
-function closeModal(e) {
-  if(e.target === document.getElementById('cust-modal')) closeModalDirect()
-}
-function closeModalDirect() {
-  document.getElementById('cust-modal').classList.remove('open')
-  document.body.style.overflow = ''
-}
-
-// ── Carga ────────────────────────────────────────────────────
-
+// ── Carga — una sola llamada, paginación completa en el servidor ──
 async function loadOrders() {
   const fromDate = document.getElementById('f-from').value
   const tillDate = document.getElementById('f-till').value
@@ -460,20 +420,16 @@ async function loadOrders() {
 
   const fromISO=fromDate+'T00:00:00.000Z', tillISO=tillDate+'T23:59:59.999Z'
   try {
-    let page=1, total=Infinity
-    while(allOrders.length<total){
-      setProgress(Math.min(allOrders.length/Math.max(total,1)*90,85))
-      const url=`${API_BASE}/api/orders?from=${encodeURIComponent(fromISO)}&till=${encodeURIComponent(tillISO)}&page=${page}&size=30`
-      const res=await fetch(url)
-      if(res.status===401){ showError('Token inválido — revisa BOOQABLE_TOKEN en Vercel'); return }
-      if(!res.ok){ const e=await res.json().catch(()=>({})); throw new Error(e.error||'HTTP '+res.status) }
-      const data=await res.json()
-      const orders=data.orders||[], meta=data.meta||{}
-      total=meta?.stats?.total?.count??orders.length
-      allOrders.push(...orders)
-      if(orders.length<30) break
-      page++
-    }
+    setProgress(20)
+    // El servidor hace toda la paginación internamente con delays
+    const url=`${API_BASE}/api/orders?from=${encodeURIComponent(fromISO)}&till=${encodeURIComponent(tillISO)}`
+    const res=await fetch(url)
+    setProgress(85)
+    if(res.status===401){ showError('Token inválido — revisa BOOQABLE_TOKEN en Vercel'); return }
+    if(res.status===429){ showError('Booqable rate limit — intentá de nuevo en unos segundos'); return }
+    if(!res.ok){ const e=await res.json().catch(()=>({})); throw new Error(e.error||'HTTP '+res.status) }
+    const data=await res.json()
+    allOrders = data.orders || []
     setProgress(100)
     populateProductChips()
     renderAll()
@@ -486,24 +442,9 @@ async function loadOrders() {
   }
 }
 
-// ── Chips PAGO ───────────────────────────────────────────────
-
-function cyclePayChip(chip) {
-  const key=chip.dataset.pay, cur=paymentStates[key]
-  const next=cur===null?'include':cur==='include'?'exclude':null
-  paymentStates[key]=next; chip.className='pchip'+(next?' '+next:'')
-  syncPayResetBtn(); if(allOrders.length) renderAll()
-}
-function resetPayChips() {
-  Object.keys(paymentStates).forEach(k=>paymentStates[k]=null)
-  document.querySelectorAll('#payment-chips .pchip').forEach(c=>c.className='pchip')
-  syncPayResetBtn(); if(allOrders.length) renderAll()
-}
-function syncPayResetBtn() {
-  document.getElementById('pay-chips-reset').style.display=Object.values(paymentStates).some(v=>v!==null)?'inline-block':'none'
-}
-
-// ── Chips PRODUCTO ───────────────────────────────────────────
+function cyclePayChip(chip){ const key=chip.dataset.pay,cur=paymentStates[key]; const next=cur===null?'include':cur==='include'?'exclude':null; paymentStates[key]=next; chip.className='pchip'+(next?' '+next:''); syncPayResetBtn(); if(allOrders.length) renderAll() }
+function resetPayChips(){ Object.keys(paymentStates).forEach(k=>paymentStates[k]=null); document.querySelectorAll('#payment-chips .pchip').forEach(c=>c.className='pchip'); syncPayResetBtn(); if(allOrders.length) renderAll() }
+function syncPayResetBtn(){ document.getElementById('pay-chips-reset').style.display=Object.values(paymentStates).some(v=>v!==null)?'inline-block':'none' }
 
 function populateProductChips() {
   const titles=new Set()
@@ -522,30 +463,17 @@ function populateProductChips() {
   document.getElementById('product-chips-row').style.display=titles.size>0?'flex':'none'
   syncProductResetBtn()
 }
-function cycleProductChip(title,chip){
-  const cur=productStates[title]
-  const next=cur===null?'include':cur==='include'?'exclude':null
-  productStates[title]=next; chip.className='pchip'+(next?' '+next:'')
-  syncProductResetBtn(); if(allOrders.length) renderAll()
-}
-function resetProductChips(){
-  Object.keys(productStates).forEach(k=>productStates[k]=null)
-  document.querySelectorAll('#product-chips .pchip').forEach(c=>c.className='pchip')
-  syncProductResetBtn(); if(allOrders.length) renderAll()
-}
-function syncProductResetBtn(){
-  document.getElementById('chips-reset').style.display=Object.values(productStates).some(v=>v!==null)?'inline-block':'none'
-}
-
-// ── Filtrado ─────────────────────────────────────────────────
+function cycleProductChip(title,chip){ const cur=productStates[title]; const next=cur===null?'include':cur==='include'?'exclude':null; productStates[title]=next; chip.className='pchip'+(next?' '+next:''); syncProductResetBtn(); if(allOrders.length) renderAll() }
+function resetProductChips(){ Object.keys(productStates).forEach(k=>productStates[k]=null); document.querySelectorAll('#product-chips .pchip').forEach(c=>c.className='pchip'); syncProductResetBtn(); if(allOrders.length) renderAll() }
+function syncProductResetBtn(){ document.getElementById('chips-reset').style.display=Object.values(productStates).some(v=>v!==null)?'inline-block':'none' }
 
 function getFiltered(){
-  const sf  = document.getElementById('f-status').value
-  const cq  = document.getElementById('f-customer').value.trim().toLowerCase()
-  const payIncluded  = Object.entries(paymentStates).filter(([,v])=>v==='include').map(([k])=>k)
-  const payExcluded  = Object.entries(paymentStates).filter(([,v])=>v==='exclude').map(([k])=>k)
-  const prodIncluded = Object.entries(productStates).filter(([,v])=>v==='include').map(([k])=>k)
-  const prodExcluded = Object.entries(productStates).filter(([,v])=>v==='exclude').map(([k])=>k)
+  const sf=document.getElementById('f-status').value
+  const cq=document.getElementById('f-customer').value.trim().toLowerCase()
+  const payIncluded=Object.entries(paymentStates).filter(([,v])=>v==='include').map(([k])=>k)
+  const payExcluded=Object.entries(paymentStates).filter(([,v])=>v==='exclude').map(([k])=>k)
+  const prodIncluded=Object.entries(productStates).filter(([,v])=>v==='include').map(([k])=>k)
+  const prodExcluded=Object.entries(productStates).filter(([,v])=>v==='exclude').map(([k])=>k)
   return allOrders.filter(o=>{
     if(sf && o.status!==sf) return false
     if(cq && !(o.customer_name||'').toLowerCase().includes(cq)) return false
@@ -558,135 +486,64 @@ function getFiltered(){
   })
 }
 
-// ── Render principal ─────────────────────────────────────────
-
 function renderAll(){
-  const cq = document.getElementById('f-customer').value.trim()
+  const cq=document.getElementById('f-customer').value.trim()
   let flat=getFiltered()
-  flat.sort((a,b)=>{
-    let va=a[sortCol]??'',vb=b[sortCol]??''
-    if(typeof va==='string') va=va.toLowerCase()
-    if(typeof vb==='string') vb=vb.toLowerCase()
-    return va<vb?sortDir:va>vb?-sortDir:0
-  })
+  flat.sort((a,b)=>{ let va=a[sortCol]??'',vb=b[sortCol]??''; if(typeof va==='string') va=va.toLowerCase(); if(typeof vb==='string') vb=vb.toLowerCase(); return va<vb?sortDir:va>vb?-sortDir:0 })
   filteredOrders=flat
-
-  const invoiced   = flat.reduce((s,o)=>s+(o.price_in_cents||0),0)/100
-  const grandTotal = flat.reduce((s,o)=>s+(o.grand_total_in_cents||0),0)/100
-  const due        = flat.reduce((s,o)=>s+(o.to_be_paid_in_cents||0),0)/100
-  const items      = flat.reduce((s,o)=>s+(o.item_count||0),0)
-  const sf         = document.getElementById('f-status').value
-
-  document.getElementById('s-total').textContent     = flat.length
-  document.getElementById('s-total-sub').textContent = sf||'todos los estados'
-  document.getElementById('s-invoiced').textContent  = fmtCHF(invoiced)
-  document.getElementById('s-invoiced-sub').textContent = 'grand total: '+fmtCHF(grandTotal)
-  document.getElementById('s-paid').textContent      = fmtCHF(grandTotal-due)
-  document.getElementById('s-paid-sub').textContent  = 'de CHF '+fmtCHF(grandTotal)
-  document.getElementById('s-due').textContent       = fmtCHF(due)
-  document.getElementById('s-due-sub').textContent   = due>0?flat.filter(o=>o.to_be_paid_in_cents>0).length+' órdenes pendientes':'todo cobrado ✓'
-  document.getElementById('s-items').textContent     = items
-
-  document.getElementById('orders-tbody').innerHTML = flat.map(o=>{
+  const invoiced=flat.reduce((s,o)=>s+(o.price_in_cents||0),0)/100
+  const grandTotal=flat.reduce((s,o)=>s+(o.grand_total_in_cents||0),0)/100
+  const due=flat.reduce((s,o)=>s+(o.to_be_paid_in_cents||0),0)/100
+  const items=flat.reduce((s,o)=>s+(o.item_count||0),0)
+  const sf=document.getElementById('f-status').value
+  document.getElementById('s-total').textContent=flat.length
+  document.getElementById('s-total-sub').textContent=sf||'todos los estados'
+  document.getElementById('s-invoiced').textContent=fmtCHF(invoiced)
+  document.getElementById('s-invoiced-sub').textContent='grand total: '+fmtCHF(grandTotal)
+  document.getElementById('s-paid').textContent=fmtCHF(grandTotal-due)
+  document.getElementById('s-paid-sub').textContent='de CHF '+fmtCHF(grandTotal)
+  document.getElementById('s-due').textContent=fmtCHF(due)
+  document.getElementById('s-due-sub').textContent=due>0?flat.filter(o=>o.to_be_paid_in_cents>0).length+' órdenes pendientes':'todo cobrado ✓'
+  document.getElementById('s-items').textContent=items
+  document.getElementById('orders-tbody').innerHTML=flat.map(o=>{
     const dc=o.to_be_paid_in_cents>0?'color:var(--warn)':'color:var(--muted)'
-    const displayName = highlightName(o.customer_name||'', cq)
-    const custId = o.customer_id ? `data-custid="${o.customer_id}"` : ''
-    const custClass = o.customer_id ? 'cust-link' : ''
-    const custClick = o.customer_id ? `onclick="openCustomerModal('${o.customer_id}')"` : ''
-    return `<tr>
-      <td class="cell-num">#${o.number||'—'}</td>
-      <td style="font-size:13px;font-weight:500;max-width:160px;overflow:hidden;text-overflow:ellipsis" title="${o.customer_name}">
-        <span class="${custClass}" ${custId} ${custClick}>${displayName}</span>
-      </td>
-      <td style="max-width:200px">${renderLines(o.lines)}</td>
-      <td><span class="badge ${o.status||''}">${o.status||'—'}</span></td>
-      <td class="cell-date">${fmtDate(o.starts_at)}</td>
-      <td class="cell-date">${fmtDate(o.stops_at)}</td>
-      <td style="font-family:var(--mono);font-size:12px;color:var(--accent2)">${o.item_count??'—'}</td>
-      <td class="cell-chf" style="color:var(--muted)">${fmtCHF((o.price_in_cents||0)/100)}</td>
-      <td class="cell-chf">${fmtCHF((o.grand_total_in_cents||0)/100)}</td>
-      <td class="cell-chf" style="${dc}">${fmtCHF((o.to_be_paid_in_cents||0)/100)}</td>
-      <td><span class="pay-badge ${o.payment_status||''}">${(o.payment_status||'—').replace('_',' ')}</span></td>
-    </tr>`
+    const displayName=highlightName(o.customer_name||'',cq)
+    const custId=o.customer_id?`data-custid="${o.customer_id}"`:'', custClass=o.customer_id?'cust-link':'', custClick=o.customer_id?`onclick="openCustomerModal('${o.customer_id}')"`:'';
+    return `<tr><td class="cell-num">#${o.number||'—'}</td><td style="font-size:13px;font-weight:500;max-width:160px;overflow:hidden;text-overflow:ellipsis" title="${o.customer_name}"><span class="${custClass}" ${custId} ${custClick}>${displayName}</span></td><td style="max-width:200px">${renderLines(o.lines)}</td><td><span class="badge ${o.status||''}">${o.status||'—'}</span></td><td class="cell-date">${fmtDate(o.starts_at)}</td><td class="cell-date">${fmtDate(o.stops_at)}</td><td style="font-family:var(--mono);font-size:12px;color:var(--accent2)">${o.item_count??'—'}</td><td class="cell-chf" style="color:var(--muted)">${fmtCHF((o.price_in_cents||0)/100)}</td><td class="cell-chf">${fmtCHF((o.grand_total_in_cents||0)/100)}</td><td class="cell-chf" style="${dc}">${fmtCHF((o.to_be_paid_in_cents||0)/100)}</td><td><span class="pay-badge ${o.payment_status||''}">${(o.payment_status||'—').replace('_',' ')}</span></td></tr>`
   }).join('')
-
   const has=flat.length>0
-  document.getElementById('orders-table').style.display = has?'table':'none'
-  document.getElementById('empty-state').style.display  = has?'none':'block'
-  document.getElementById('btn-excel').disabled = !has
+  document.getElementById('orders-table').style.display=has?'table':'none'
+  document.getElementById('empty-state').style.display=has?'none':'block'
+  document.getElementById('btn-excel').disabled=!has
   if(!has) document.getElementById('empty-state').innerHTML='<span class="big">⊘</span>Sin órdenes para este filtro'
-
   if(currentView==='charts') renderCharts(flat)
 }
-
-// ── Gráficos ─────────────────────────────────────────────────
 
 const MONTHS_ES=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic']
 const DAYS_ES=['Dom','Lun','Mar','Mié','Jue','Vie','Sáb']
 
-function makeChart(id,type,data,options){
-  if(chartInstances[id]) chartInstances[id].destroy()
-  const ctx=document.getElementById(id).getContext('2d')
-  chartInstances[id]=new Chart(ctx,{type,data,options})
-}
-function productFamily(title){
-  if(!title) return 'Otros'
-  const words=title.trim().split(/\s+/)
-  if(words.length===1) return words[0]
-  const first=words.find(w=>w.length>2&&isNaN(w))
-  return first||words[0]
-}
+function makeChart(id,type,data,options){ if(chartInstances[id]) chartInstances[id].destroy(); const ctx=document.getElementById(id).getContext('2d'); chartInstances[id]=new Chart(ctx,{type,data,options}) }
+function productFamily(title){ if(!title) return 'Otros'; const words=title.trim().split(/\s+/); if(words.length===1) return words[0]; const first=words.find(w=>w.length>2&&isNaN(w)); return first||words[0] }
 
 function renderCharts(orders){
   if(!orders.length) return
 
-  // ── 1. Ingresos por mes + línea objetivo ─────────────────────
   const monthMap={}
   orders.forEach(o=>{ if(!o.starts_at) return; const d=new Date(o.starts_at); const key=d.getFullYear()+'-'+pad(d.getMonth()+1); monthMap[key]=(monthMap[key]||0)+(o.grand_total_in_cents||0)/100 })
   const monthKeys=Object.keys(monthMap).sort()
   const monthLabels=monthKeys.map(k=>{ const [y,m]=k.split('-'); return MONTHS_ES[+m-1]+' '+y })
   const targetData=monthKeys.map(k=>MONTHLY_TARGET[parseInt(k.split('-')[1],10)-1])
-
   makeChart('ch-monthly','bar',{
     labels:monthLabels,
     datasets:[
-      {
-        type:'bar',
-        label:'Ingresos CHF',
-        data:monthKeys.map(k=>monthMap[k]),
-        backgroundColor:'rgba(232,255,71,.7)',
-        borderColor:'#e8ff47',
-        borderWidth:1,
-        borderRadius:4,
-        order:2
-      },
-      {
-        type:'line',
-        label:'Objetivo CHF',
-        data:targetData,
-        borderColor:'#ff5f57',
-        borderWidth:2,
-        borderDash:[6,3],
-        pointBackgroundColor:'#ff5f57',
-        pointRadius:4,
-        pointHoverRadius:6,
-        fill:false,
-        tension:0.3,
-        order:1
-      }
+      {type:'bar',label:'Ingresos CHF',data:monthKeys.map(k=>monthMap[k]),backgroundColor:'rgba(232,255,71,.7)',borderColor:'#e8ff47',borderWidth:1,borderRadius:4,order:2},
+      {type:'line',label:'Objetivo CHF',data:targetData,borderColor:'#ff5f57',borderWidth:2,borderDash:[6,3],pointBackgroundColor:'#ff5f57',pointRadius:4,pointHoverRadius:6,fill:false,tension:0.3,order:1}
     ]
   },{
-    responsive:true,
-    maintainAspectRatio:false,
+    responsive:true,maintainAspectRatio:false,
     plugins:{
-      legend:{
-        display:true,
-        labels:{color:'#6b7280',font:{family:"'Space Mono',monospace",size:11},boxWidth:12,padding:16}
-      },
-      tooltip:{
-        backgroundColor:'#1e2127',titleColor:'#e8e9ec',bodyColor:'#6b7280',borderColor:'#2a2d35',borderWidth:1,
-        callbacks:{label:ctx=>' '+ctx.dataset.label+': CHF '+ctx.parsed.y.toLocaleString('de-CH',{minimumFractionDigits:2,maximumFractionDigits:2})}
-      }
+      legend:{display:true,labels:{color:'#6b7280',font:{family:"'Space Mono',monospace",size:11},boxWidth:12,padding:16}},
+      tooltip:{backgroundColor:'#1e2127',titleColor:'#e8e9ec',bodyColor:'#6b7280',borderColor:'#2a2d35',borderWidth:1,callbacks:{label:ctx=>' '+ctx.dataset.label+': CHF '+ctx.parsed.y.toLocaleString('de-CH',{minimumFractionDigits:2,maximumFractionDigits:2})}}
     },
     scales:{
       x:{ticks:{color:'#6b7280',font:{family:"'Space Mono',monospace",size:10}},grid:{color:'#2a2d35'}},
@@ -694,7 +551,6 @@ function renderCharts(orders){
     }
   })
 
-  // ── 2. Ventas por mes por familia ──────────────────────────
   const famMonthMap={}
   orders.forEach(o=>{ if(!o.starts_at) return; const d=new Date(o.starts_at); const mk=d.getFullYear()+'-'+pad(d.getMonth()+1); const lines=(o.lines||[]).filter(l=>l.title); if(!lines.length) return; const perLine=(o.grand_total_in_cents||0)/lines.length; lines.forEach(l=>{ const fam=productFamily(l.title); if(!famMonthMap[fam]) famMonthMap[fam]={}; famMonthMap[fam][mk]=(famMonthMap[fam][mk]||0)+perLine/100 }) })
   const allFams=Object.keys(famMonthMap).sort()
@@ -726,8 +582,6 @@ function renderCharts(orders){
     {responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{backgroundColor:'#1e2127',titleColor:'#e8e9ec',bodyColor:'#6b7280',borderColor:'#2a2d35',borderWidth:1,callbacks:{label:ctx=>' '+ctx.parsed.y+' órdenes'}}},scales:{x:{ticks:{color:'#6b7280',font:{family:"'Space Mono',monospace",size:11}},grid:{color:'#2a2d35'}},y:{ticks:{color:'#6b7280',font:{family:"'Space Mono',monospace",size:10}},grid:{color:'#2a2d35'}}}})
 }
 
-// ── Excel ───────────────────────────────────────────────────
-
 function exportExcel(){
   if(!filteredOrders.length) return
   const from=document.getElementById('f-from').value, till=document.getElementById('f-till').value
@@ -739,26 +593,11 @@ function exportExcel(){
   XLSX.writeFile(wb,`2wheels_${from}_${till}.xlsx`)
 }
 
-// ── Helpers ───────────────────────────────────────────────────
-
-function hideTable(){
-  document.getElementById('orders-table').style.display='none'
-  document.getElementById('empty-state').style.display='block'
-  document.getElementById('empty-state').innerHTML='<span class="spinner"></span>Cargando órdenes...'
-}
-function showError(msg){
-  const b=document.getElementById('error-banner'); b.textContent=msg; b.style.display='block'
-  document.getElementById('empty-state').style.display='none'
-  document.getElementById('orders-table').style.display='none'
-}
+function hideTable(){ document.getElementById('orders-table').style.display='none'; document.getElementById('empty-state').style.display='block'; document.getElementById('empty-state').innerHTML='<span class="spinner"></span>Cargando órdenes...' }
+function showError(msg){ const b=document.getElementById('error-banner'); b.textContent=msg; b.style.display='block'; document.getElementById('empty-state').style.display='none'; document.getElementById('orders-table').style.display='none' }
 function setProgress(pct){ document.getElementById('progress-bar').style.width=pct+'%' }
 function setStatus(type,msg){ document.getElementById('status-pill').className='pill '+type; document.getElementById('status-text').textContent=msg }
-function sortBy(col,th){
-  sortDir=sortCol===col?sortDir*-1:-1; sortCol=col
-  document.querySelectorAll('th').forEach(t=>t.classList.remove('sorted'))
-  if(th) th.classList.add('sorted')
-  if(allOrders.length) renderAll()
-}
+function sortBy(col,th){ sortDir=sortCol===col?sortDir*-1:-1; sortCol=col; document.querySelectorAll('th').forEach(t=>t.classList.remove('sorted')); if(th) th.classList.add('sorted'); if(allOrders.length) renderAll() }
 function renderLines(lines){
   if(!lines||lines.length===0) return '<span style="color:var(--muted);font-size:11px">—</span>'
   return `<div style="display:flex;flex-direction:column;gap:3px">${lines.map(l=>`<span style="display:inline-block;font-size:11px;font-family:var(--mono);background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:2px 7px;white-space:nowrap;width:fit-content">${l.quantity>1?l.quantity+'× ':''}${l.title}</span>`).join('')}</div>`
