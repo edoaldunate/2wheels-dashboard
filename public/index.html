@@ -251,7 +251,7 @@
       <button class="chips-reset" id="pay-chips-reset" onclick="resetPayChips()" style="display:none">Limpiar</button>
     </div>
     <div class="chips-row" id="family-chips-row" style="display:none">
-      <span class="chips-label">Familia de Producto</span>
+      <span class="chips-label">Colección</span>
       <div class="chips-group" id="family-chips"></div>
       <button class="chips-reset" id="family-chips-reset" onclick="resetProductFamilyChips()" style="display:none">Limpiar</button>
     </div>
@@ -496,7 +496,10 @@ function toggleProductChips(){
 
 function populateProductFamilyChips(){
   const families=new Set()
-  allOrders.forEach(o=>(o.lines||[]).forEach(l=>{ if(l.title) families.add(productFamily(l.title)) }))
+  allOrders.forEach(o=>(o.lines||[]).forEach(l=>{
+    if(l.collections && l.collections.length) l.collections.forEach(c=>families.add(c))
+    else if(l.title) families.add(productFamily(l.title))  // fallback si no hay collections
+  }))
   Object.keys(productFamilyStates).forEach(k=>{ if(!families.has(k)) delete productFamilyStates[k] })
   const container=document.getElementById('family-chips')
   container.innerHTML=''
@@ -532,9 +535,9 @@ function getFiltered(){
     const titles=(o.lines||[]).map(l=>l.title)
     if(prodIncluded.length && !prodIncluded.some(t=>titles.includes(t))) return false
     if(prodExcluded.length &&  prodExcluded.some(t=>titles.includes(t))) return false
-    const families=titles.map(t=>productFamily(t))
-    if(famIncluded.length && !famIncluded.some(f=>families.includes(f))) return false
-    if(famExcluded.length &&  famExcluded.some(f=>families.includes(f))) return false
+    const lineColls=(o.lines||[]).flatMap(l=>l.collections&&l.collections.length?l.collections:[productFamily(l.title)])
+    if(famIncluded.length && !famIncluded.some(f=>lineColls.includes(f))) return false
+    if(famExcluded.length &&  famExcluded.some(f=>lineColls.includes(f))) return false
     return true
   })
 }
