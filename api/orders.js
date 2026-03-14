@@ -122,29 +122,20 @@ export default async function handler(req, res) {
 
       const lp = new URLSearchParams()
       batchIds.forEach(id => lp.append('filter[order_id][]', id))
-      lp.append('fields[lines]', 'title,quantity,order_id,price_in_cents')
-      lp.append('include', 'owner')
-      lp.append('fields[product_groups]', 'id')
+      lp.append('fields[lines]', 'title,quantity,order_id,price_in_cents,owner_id,owner_type')
       lp.append('page[size]', '200')
 
       const linesRes = await fetchWithRetry(`${base}/lines?${lp}`, { headers })
       if (linesRes && linesRes.ok) {
         const linesRaw = await linesRes.json()
-        // DEBUG: capture raw line sample from first batch
-        if (i === 0 && linesRaw.data?.length > 0) {
-          const sample = linesRaw.data[0]
-          console.log('[lines debug] first line keys:', Object.keys(sample))
-          console.log('[lines debug] relationships:', JSON.stringify(sample.relationships))
-          console.log('[lines debug] included types:', (linesRaw.included || []).map(x => x.type).slice(0, 5))
-        }
         for (const line of (linesRaw.data || [])) {
           const a   = line.attributes || {}
           const oid = a.order_id
           if (!oid) continue
           if (!linesMap[oid]) linesMap[oid] = []
           if (a.title) {
-            const ownerRel = line.relationships?.owner?.data
-            const ownerId = ownerRel ? ownerRel.id : null
+            // owner_id es el product_group ID cuando owner_type === 'ProductGroup'
+            const ownerId = a.owner_type === 'ProductGroup' ? a.owner_id : null
             linesMap[oid].push({ title: a.title, quantity: a.quantity || 1, owner_id: ownerId })
           }
         }
@@ -229,18 +220,9 @@ export default async function handler(req, res) {
       }
     })
 
-    // DEBUG — eliminar cuando funcione
-    const sampleLine = Object.values(linesMap)[0]?.[0] || null
-    const _debug = {
-      pgCollectionsSize: Object.keys(pgCollections).length,
-      pgCollectionsSample: Object.entries(pgCollections).slice(0, 3),
-      sampleLine,
-      sampleOrderWithLines: orders.find(o => o.lines?.length > 0)?.lines?.slice(0, 2) || []
-    }
-
     // Cache más largo para rangos grandes (reduce re-fetches)
     res.setHeader('Cache-Control', 's-maxage=120, stale-while-revalidate=60')
-    return res.status(200).json({ orders, meta: firstMeta || {}, _debug })
+    return res.status(200).json({ orders, meta: firstMeta || {} })
 
   } catch (err) {
     console.error('[orders]', err)
