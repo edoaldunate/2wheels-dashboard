@@ -76,6 +76,14 @@
   .pchip.exclude::before{content:'✕ '}
   .chips-reset{font-family:var(--mono);font-size:10px;padding:3px 8px;border-radius:20px;border:1px solid var(--border);color:var(--muted);background:transparent;cursor:pointer;opacity:.6;transition:opacity .15s}
   .chips-reset:hover{opacity:1}
+  .chips-row.collapsible{flex-direction:column;align-items:stretch;padding:0;gap:0}
+  .chips-row-header{display:flex;align-items:center;gap:8px;padding:10px 0;cursor:pointer;user-select:none;border-top:1px solid var(--border)}
+  .chips-row.collapsible{border-top:none}
+  .chips-row-header:hover .chips-label{color:var(--text)}
+  .chips-toggle-arrow{font-size:9px;color:var(--muted);transition:transform .2s;flex-shrink:0}
+  .chips-toggle-arrow.open{transform:rotate(90deg)}
+  .chips-row-body{max-height:300px;overflow:hidden;transition:max-height .25s ease,padding .25s ease;padding-bottom:10px;display:flex;flex-wrap:wrap;gap:6px}
+  .chips-row-body.collapsed{max-height:0;padding-bottom:0}
 
   .stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:1px;background:var(--border);border-bottom:1px solid var(--border)}
   .stat-card{background:var(--surface);padding:20px 24px;display:flex;flex-direction:column;gap:6px;transition:background .15s}
@@ -242,10 +250,20 @@
       </div>
       <button class="chips-reset" id="pay-chips-reset" onclick="resetPayChips()" style="display:none">Limpiar</button>
     </div>
-    <div class="chips-row" id="product-chips-row" style="display:none">
-      <span class="chips-label">Producto</span>
-      <div class="chips-group" id="product-chips"></div>
-      <button class="chips-reset" id="chips-reset" onclick="resetProductChips()" style="display:none">Limpiar</button>
+    <div class="chips-row" id="family-chips-row" style="display:none">
+      <span class="chips-label">Familia de Producto</span>
+      <div class="chips-group" id="family-chips"></div>
+      <button class="chips-reset" id="family-chips-reset" onclick="resetProductFamilyChips()" style="display:none">Limpiar</button>
+    </div>
+    <div class="chips-row collapsible" id="product-chips-row" style="display:none">
+      <div class="chips-row-header" onclick="toggleProductChips()">
+        <span class="chips-label">Producto</span>
+        <span class="chips-toggle-arrow" id="product-chips-arrow">▶</span>
+        <button class="chips-reset" id="chips-reset" onclick="event.stopPropagation();resetProductChips()" style="display:none">Limpiar</button>
+      </div>
+      <div class="chips-row-body collapsed" id="product-chips-body">
+        <div class="chips-group" id="product-chips"></div>
+      </div>
     </div>
   </div>
 
@@ -311,6 +329,7 @@ let sortCol = 'number', sortDir = -1
 let currentView = 'data'
 
 const productStates = {}
+const productFamilyStates = {}
 const paymentStates = { payment_due:null, partially_paid:null, paid:null, overpaid:null }
 
 const MONTHLY_TARGET = [0, 0, 871, 4600, 5376, 9157, 13657, 11034, 7500, 3351, 400, 0]
@@ -432,6 +451,7 @@ async function loadOrders() {
     allOrders = data.orders || []
     setProgress(100)
     populateProductChips()
+    populateProductFamilyChips()
     renderAll()
     setStatus('ok', allOrders.length+' órdenes — '+new Date().toLocaleTimeString('es'))
   } catch(e){
@@ -467,6 +487,34 @@ function cycleProductChip(title,chip){ const cur=productStates[title]; const nex
 function resetProductChips(){ Object.keys(productStates).forEach(k=>productStates[k]=null); document.querySelectorAll('#product-chips .pchip').forEach(c=>c.className='pchip'); syncProductResetBtn(); if(allOrders.length) renderAll() }
 function syncProductResetBtn(){ document.getElementById('chips-reset').style.display=Object.values(productStates).some(v=>v!==null)?'inline-block':'none' }
 
+function toggleProductChips(){
+  const body=document.getElementById('product-chips-body')
+  const arrow=document.getElementById('product-chips-arrow')
+  const collapsed=body.classList.toggle('collapsed')
+  arrow.classList.toggle('open',!collapsed)
+}
+
+function populateProductFamilyChips(){
+  const families=new Set()
+  allOrders.forEach(o=>(o.lines||[]).forEach(l=>{ if(l.title) families.add(productFamily(l.title)) }))
+  Object.keys(productFamilyStates).forEach(k=>{ if(!families.has(k)) delete productFamilyStates[k] })
+  const container=document.getElementById('family-chips')
+  container.innerHTML=''
+  Array.from(families).sort().forEach(fam=>{
+    if(!(fam in productFamilyStates)) productFamilyStates[fam]=null
+    const chip=document.createElement('span')
+    chip.className='pchip'+(productFamilyStates[fam]?' '+productFamilyStates[fam]:'')
+    chip.textContent=fam; chip.dataset.family=fam
+    chip.addEventListener('click',()=>cycleProductFamilyChip(fam,chip))
+    container.appendChild(chip)
+  })
+  document.getElementById('family-chips-row').style.display=families.size>0?'flex':'none'
+  syncFamilyResetBtn()
+}
+function cycleProductFamilyChip(fam,chip){ const cur=productFamilyStates[fam]; const next=cur===null?'include':cur==='include'?'exclude':null; productFamilyStates[fam]=next; chip.className='pchip'+(next?' '+next:''); syncFamilyResetBtn(); if(allOrders.length) renderAll() }
+function resetProductFamilyChips(){ Object.keys(productFamilyStates).forEach(k=>productFamilyStates[k]=null); document.querySelectorAll('#family-chips .pchip').forEach(c=>c.className='pchip'); syncFamilyResetBtn(); if(allOrders.length) renderAll() }
+function syncFamilyResetBtn(){ document.getElementById('family-chips-reset').style.display=Object.values(productFamilyStates).some(v=>v!==null)?'inline-block':'none' }
+
 function getFiltered(){
   const sf=document.getElementById('f-status').value
   const cq=document.getElementById('f-customer').value.trim().toLowerCase()
@@ -474,6 +522,8 @@ function getFiltered(){
   const payExcluded=Object.entries(paymentStates).filter(([,v])=>v==='exclude').map(([k])=>k)
   const prodIncluded=Object.entries(productStates).filter(([,v])=>v==='include').map(([k])=>k)
   const prodExcluded=Object.entries(productStates).filter(([,v])=>v==='exclude').map(([k])=>k)
+  const famIncluded=Object.entries(productFamilyStates).filter(([,v])=>v==='include').map(([k])=>k)
+  const famExcluded=Object.entries(productFamilyStates).filter(([,v])=>v==='exclude').map(([k])=>k)
   return allOrders.filter(o=>{
     if(sf && o.status!==sf) return false
     if(cq && !(o.customer_name||'').toLowerCase().includes(cq)) return false
@@ -482,6 +532,9 @@ function getFiltered(){
     const titles=(o.lines||[]).map(l=>l.title)
     if(prodIncluded.length && !prodIncluded.some(t=>titles.includes(t))) return false
     if(prodExcluded.length &&  prodExcluded.some(t=>titles.includes(t))) return false
+    const families=titles.map(t=>productFamily(t))
+    if(famIncluded.length && !famIncluded.some(f=>families.includes(f))) return false
+    if(famExcluded.length &&  famExcluded.some(f=>families.includes(f))) return false
     return true
   })
 }
