@@ -361,9 +361,9 @@ function sortBy(col,th){
 }
 function renderLines(lines) {
   if (!lines || lines.length === 0) return '<span style="color:var(--muted);font-size:11px">—</span>'
-  return lines.map(l =>
-    `<span style="display:inline-block;font-size:11px;font-family:var(--mono);background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:2px 7px;margin:1px 2px 1px 0;white-space:nowrap">${l.quantity > 1 ? l.quantity+'× ' : ''}${l.title}</span>`
-  ).join('')
+  return `<div style="display:flex;flex-direction:column;gap:3px">${lines.map(l =>
+    `<span style="display:inline-block;font-size:11px;font-family:var(--mono);background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:2px 7px;white-space:nowrap;width:fit-content">${l.quantity > 1 ? l.quantity+'× ' : ''}${l.title}</span>`
+  ).join('')}</div>`
 }
 function fmtCHF(n){ return (n||0).toLocaleString('de-CH',{minimumFractionDigits:2,maximumFractionDigits:2}) }
 function fmtDate(iso){
