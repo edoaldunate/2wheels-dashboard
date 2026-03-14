@@ -143,10 +143,10 @@ export default async function handler(req, res) {
       if (i + PAGE_SIZE < allOrderItems.length) await sleep(PAGE_DELAY)
     }
 
-    // ── 3. Traer collections y mapear sus product_groups via filter ──────────
+    // ── 3. Construir mapa productId → collections[] ───────────────────────
+    // 3a. collection → product_groups
     const pgCollections = {}  // productGroupId → string[]
     try {
-      // 1. Obtener lista de collections
       const collRes = await fetchWithRetry(
         `${base}/collections?fields[collections]=id,name&page[size]=100`,
         { headers }
@@ -157,7 +157,6 @@ export default async function handler(req, res) {
           .map(c => ({ id: c.id, name: c.attributes?.name }))
           .filter(c => c.name && c.name !== 'All')
 
-        // 2. Para cada collection, traer sus product_groups via filter
         for (const coll of collections) {
           const pgRes = await fetchWithRetry(
             `${base}/product_groups?filter[collection_id]=${coll.id}&fields[product_groups]=id&page[size]=100`,
@@ -172,6 +171,33 @@ export default async function handler(req, res) {
           }
           await sleep(PAGE_DELAY)
         }
+      }
+    } catch(_) { /* no bloquea si falla */ }
+
+    // 3b. product → product_group → collections (para cruzar con item_id de lines)
+    const productCollections = {}  // productId → string[]
+    try {
+      const allItemIds = [...new Set(
+        Object.values(linesMap).flat().map(l => l.item_id).filter(Boolean)
+      )]
+      // Fetch en lotes de 50
+      for (let i = 0; i < allItemIds.length; i += 50) {
+        const batch = allItemIds.slice(i, i + 50)
+        const pp = new URLSearchParams()
+        batch.forEach(id => pp.append('filter[id][]', id))
+        pp.append('fields[products]', 'id,product_group_id')
+        pp.append('page[size]', '200')
+        const prodRes = await fetchWithRetry(`${base}/products?${pp}`, { headers })
+        if (prodRes && prodRes.ok) {
+          const prodRaw = await prodRes.json()
+          for (const prod of (prodRaw.data || [])) {
+            const pgId = prod.attributes?.product_group_id
+            if (pgId && pgCollections[pgId]) {
+              productCollections[prod.id] = pgCollections[pgId]
+            }
+          }
+        }
+        if (i + 50 < allItemIds.length) await sleep(PAGE_DELAY)
       }
     } catch(_) { /* no bloquea si falla */ }
 
@@ -212,24 +238,16 @@ export default async function handler(req, res) {
         grand_total_in_cents: a.grand_total_in_cents  || 0,
         to_be_paid_in_cents:  a.to_be_paid_in_cents   || 0,
         lines:                (linesMap[item.id] || []).map(l => ({
-          ...l,
-          collections: pgCollections[l.item_id] || []
+          title:       l.title,
+          quantity:    l.quantity,
+          collections: productCollections[l.item_id] || [],
         })),
       }
     })
 
-    // DEBUG
-    const allLines = Object.values(linesMap).flat()
-    const _debug = {
-      itemTypes: [...new Set(allLines.map(l => l.item_type))],
-      itemSample: allLines.slice(0, 3).map(l => ({ title: l.title, item_type: l.item_type, item_id: l.item_id })),
-      pgCollectionsSize: Object.keys(pgCollections).length,
-      pgCollectionsSample: Object.entries(pgCollections).slice(0, 3),
-    }
-
     // Cache más largo para rangos grandes (reduce re-fetches)
     res.setHeader('Cache-Control', 's-maxage=120, stale-while-revalidate=60')
-    return res.status(200).json({ orders, meta: firstMeta || {}, _debug })
+    return res.status(200).json({ orders, meta: firstMeta || {} })
 
   } catch (err) {
     console.error('[orders]', err)
