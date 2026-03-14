@@ -289,7 +289,7 @@
 
   <div id="view-charts" style="display:none">
     <div class="charts-wrap">
-      <div class="chart-card full"><div class="chart-title">Ingresos por mes (CHF)</div><div class="chart-box"><canvas id="ch-monthly"></canvas></div></div>
+      <div class="chart-card full"><div class="chart-title">Ingresos por mes (CHF) — línea: objetivo</div><div class="chart-box"><canvas id="ch-monthly"></canvas></div></div>
       <div class="chart-card full"><div class="chart-title">Ventas por mes — agrupación por familia de productos (CHF)</div><div class="chart-box tall"><canvas id="ch-monthly-family"></canvas></div></div>
       <div class="chart-card"><div class="chart-title">Órdenes por estado</div><div class="chart-box"><canvas id="ch-status"></canvas></div></div>
       <div class="chart-card"><div class="chart-title">Estado de pagos</div><div class="chart-box"><canvas id="ch-payment"></canvas></div></div>
@@ -318,6 +318,9 @@ let currentView = 'data'
 
 const productStates = {}
 const paymentStates = { payment_due:null, partially_paid:null, paid:null, overpaid:null }
+
+// Objetivo de ingresos por mes (0=enero … 11=diciembre)
+const MONTHLY_TARGET = [0, 0, 871, 4600, 5376, 9157, 13657, 11034, 7500, 3351, 400, 0]
 
 const PALETTE = ['#e8ff47','#47c8ff','#47ff9c','#ffb647','#ff5f57','#d0a0ff','#ff8c47','#47ffe8','#ff47b8','#a8ff47','#ffdc47','#4778ff','#ff4747','#47ffa0','#c847ff']
 const CHART_DEFAULTS = {
@@ -356,54 +359,19 @@ function switchView(view) {
   if(view==='charts' && filteredOrders.length) renderCharts(filteredOrders)
 }
 
-// ── Quick filters de fecha ───────────────────────────────────
+// ── Quick filters de fecha ───────────────────────────────────────
 
 function pad(n){ return String(n).padStart(2,'0') }
 function fmt(d){ return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()) }
-
-function setDates(f, t) {
-  document.getElementById('f-from').value = f
-  document.getElementById('f-till').value = t
-}
-
-function setActiveRange(key) {
-  document.querySelectorAll('.btn-ghost[data-range]').forEach(b =>
-    b.classList.toggle('range-active', b.dataset.range === key)
-  )
-}
-
-function clearActiveRange() {
-  document.querySelectorAll('.btn-ghost[data-range]').forEach(b =>
-    b.classList.remove('range-active')
-  )
-}
-
-function setToday(){
-  const d=fmt(new Date()); setDates(d,d); setActiveRange('today')
-}
-function setThisMonth(){
-  const n=new Date(),y=n.getFullYear(),m=n.getMonth()
-  setDates(y+'-'+pad(m+1)+'-01',y+'-'+pad(m+1)+'-'+new Date(y,m+1,0).getDate())
-  setActiveRange('thisMonth')
-}
-function setLastMonth(){
-  const n=new Date(),y=n.getFullYear(),m=n.getMonth()
-  const ly=m===0?y-1:y,lm=m===0?12:m
-  setDates(ly+'-'+pad(lm)+'-01',ly+'-'+pad(lm)+'-'+new Date(ly,lm,0).getDate())
-  setActiveRange('lastMonth')
-}
-function setThisQuarter(){
-  const n=new Date(),y=n.getFullYear(),m=n.getMonth()
-  const qs=Math.floor(m/3)*3,qe=qs+2
-  setDates(y+'-'+pad(qs+1)+'-01',y+'-'+pad(qe+1)+'-'+new Date(y,qe+1,0).getDate())
-  setActiveRange('quarter')
-}
-function setThisYear(){
-  const y=new Date().getFullYear(); setDates(y+'-01-01',y+'-12-31'); setActiveRange('thisYear')
-}
-function setLastYear(){
-  const y=new Date().getFullYear()-1; setDates(y+'-01-01',y+'-12-31'); setActiveRange('lastYear')
-}
+function setDates(f,t){ document.getElementById('f-from').value=f; document.getElementById('f-till').value=t }
+function setActiveRange(key){ document.querySelectorAll('.btn-ghost[data-range]').forEach(b=>b.classList.toggle('range-active',b.dataset.range===key)) }
+function clearActiveRange(){ document.querySelectorAll('.btn-ghost[data-range]').forEach(b=>b.classList.remove('range-active')) }
+function setToday(){ const d=fmt(new Date()); setDates(d,d); setActiveRange('today') }
+function setThisMonth(){ const n=new Date(),y=n.getFullYear(),m=n.getMonth(); setDates(y+'-'+pad(m+1)+'-01',y+'-'+pad(m+1)+'-'+new Date(y,m+1,0).getDate()); setActiveRange('thisMonth') }
+function setLastMonth(){ const n=new Date(),y=n.getFullYear(),m=n.getMonth(); const ly=m===0?y-1:y,lm=m===0?12:m; setDates(ly+'-'+pad(lm)+'-01',ly+'-'+pad(lm)+'-'+new Date(ly,lm,0).getDate()); setActiveRange('lastMonth') }
+function setThisQuarter(){ const n=new Date(),y=n.getFullYear(),m=n.getMonth(); const qs=Math.floor(m/3)*3,qe=qs+2; setDates(y+'-'+pad(qs+1)+'-01',y+'-'+pad(qe+1)+'-'+new Date(y,qe+1,0).getDate()); setActiveRange('quarter') }
+function setThisYear(){ const y=new Date().getFullYear(); setDates(y+'-01-01',y+'-12-31'); setActiveRange('thisYear') }
+function setLastYear(){ const y=new Date().getFullYear()-1; setDates(y+'-01-01',y+'-12-31'); setActiveRange('lastYear') }
 
 // ── Búsqueda cliente ─────────────────────────────────────────
 
@@ -672,13 +640,61 @@ function productFamily(title){
 function renderCharts(orders){
   if(!orders.length) return
 
+  // ── 1. Ingresos por mes + línea objetivo ─────────────────────
   const monthMap={}
   orders.forEach(o=>{ if(!o.starts_at) return; const d=new Date(o.starts_at); const key=d.getFullYear()+'-'+pad(d.getMonth()+1); monthMap[key]=(monthMap[key]||0)+(o.grand_total_in_cents||0)/100 })
   const monthKeys=Object.keys(monthMap).sort()
   const monthLabels=monthKeys.map(k=>{ const [y,m]=k.split('-'); return MONTHS_ES[+m-1]+' '+y })
-  makeChart('ch-monthly','bar',{labels:monthLabels,datasets:[{label:'Ingresos CHF',data:monthKeys.map(k=>monthMap[k]),backgroundColor:'rgba(232,255,71,.7)',borderColor:'#e8ff47',borderWidth:1,borderRadius:4}]},
-    {...CHART_DEFAULTS,plugins:{...CHART_DEFAULTS.plugins,legend:{display:false}},scales:CHART_DEFAULTS.scales})
+  const targetData=monthKeys.map(k=>MONTHLY_TARGET[parseInt(k.split('-')[1],10)-1])
 
+  makeChart('ch-monthly','bar',{
+    labels:monthLabels,
+    datasets:[
+      {
+        type:'bar',
+        label:'Ingresos CHF',
+        data:monthKeys.map(k=>monthMap[k]),
+        backgroundColor:'rgba(232,255,71,.7)',
+        borderColor:'#e8ff47',
+        borderWidth:1,
+        borderRadius:4,
+        order:2
+      },
+      {
+        type:'line',
+        label:'Objetivo CHF',
+        data:targetData,
+        borderColor:'#ff5f57',
+        borderWidth:2,
+        borderDash:[6,3],
+        pointBackgroundColor:'#ff5f57',
+        pointRadius:4,
+        pointHoverRadius:6,
+        fill:false,
+        tension:0.3,
+        order:1
+      }
+    ]
+  },{
+    responsive:true,
+    maintainAspectRatio:false,
+    plugins:{
+      legend:{
+        display:true,
+        labels:{color:'#6b7280',font:{family:"'Space Mono',monospace",size:11},boxWidth:12,padding:16}
+      },
+      tooltip:{
+        backgroundColor:'#1e2127',titleColor:'#e8e9ec',bodyColor:'#6b7280',borderColor:'#2a2d35',borderWidth:1,
+        callbacks:{label:ctx=>' '+ctx.dataset.label+': CHF '+ctx.parsed.y.toLocaleString('de-CH',{minimumFractionDigits:2,maximumFractionDigits:2})}
+      }
+    },
+    scales:{
+      x:{ticks:{color:'#6b7280',font:{family:"'Space Mono',monospace",size:10}},grid:{color:'#2a2d35'}},
+      y:{ticks:{color:'#6b7280',font:{family:"'Space Mono',monospace",size:10},callback:v=>'CHF '+v.toLocaleString('de-CH')},grid:{color:'#2a2d35'}}
+    }
+  })
+
+  // ── 2. Ventas por mes por familia ──────────────────────────
   const famMonthMap={}
   orders.forEach(o=>{ if(!o.starts_at) return; const d=new Date(o.starts_at); const mk=d.getFullYear()+'-'+pad(d.getMonth()+1); const lines=(o.lines||[]).filter(l=>l.title); if(!lines.length) return; const perLine=(o.grand_total_in_cents||0)/lines.length; lines.forEach(l=>{ const fam=productFamily(l.title); if(!famMonthMap[fam]) famMonthMap[fam]={}; famMonthMap[fam][mk]=(famMonthMap[fam][mk]||0)+perLine/100 }) })
   const allFams=Object.keys(famMonthMap).sort()
@@ -710,7 +726,7 @@ function renderCharts(orders){
     {responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{backgroundColor:'#1e2127',titleColor:'#e8e9ec',bodyColor:'#6b7280',borderColor:'#2a2d35',borderWidth:1,callbacks:{label:ctx=>' '+ctx.parsed.y+' órdenes'}}},scales:{x:{ticks:{color:'#6b7280',font:{family:"'Space Mono',monospace",size:11}},grid:{color:'#2a2d35'}},y:{ticks:{color:'#6b7280',font:{family:"'Space Mono',monospace",size:10}},grid:{color:'#2a2d35'}}}})
 }
 
-// ── Excel ─────────────────────────────────────────────────────
+// ── Excel ───────────────────────────────────────────────────
 
 function exportExcel(){
   if(!filteredOrders.length) return
