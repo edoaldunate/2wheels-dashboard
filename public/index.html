@@ -150,6 +150,7 @@
       <button class="btn-ghost" onclick="setLastMonth()">Mes pasado</button>
       <button class="btn-ghost" onclick="setThisQuarter()">Trimestre</button>
       <button class="btn-ghost" onclick="setThisYear()">Este año</button>
+      <button class="btn-ghost" onclick="setLastYear()">Año pasado</button>
       <button class="btn" id="btn-load" onclick="loadOrders()">↓ Cargar</button>
       <button class="btn-excel" id="btn-excel" onclick="exportExcel()" disabled title="Exporta los datos filtrados visibles en la tabla">⬇ Excel</button>
     </div>
@@ -224,7 +225,7 @@
 const API_BASE = 'https://2wheels-dashboard.vercel.app'
 
 let allOrders = []
-let filteredOrders = []   // siempre sincronizado con lo que se ve en la tabla
+let filteredOrders = []
 let sortCol = 'number'
 let sortDir = -1
 
@@ -266,6 +267,10 @@ function setThisQuarter(){
 }
 function setThisYear(){
   const y=new Date().getFullYear()
+  setDates(y+'-01-01', y+'-12-31')
+}
+function setLastYear(){
+  const y=new Date().getFullYear()-1
   setDates(y+'-01-01', y+'-12-31')
 }
 
@@ -385,7 +390,7 @@ function renderAll() {
     return va<vb ? sortDir : va>vb ? -sortDir : 0
   })
 
-  filteredOrders = flat  // guardar referencia para exportar
+  filteredOrders = flat
 
   const invoiced   = flat.reduce((s,o)=>s+(o.price_in_cents||0),0)/100
   const grandTotal = flat.reduce((s,o)=>s+(o.grand_total_in_cents||0),0)/100
@@ -433,7 +438,6 @@ function exportExcel() {
   const from = document.getElementById('f-from').value
   const till = document.getElementById('f-till').value
 
-  // Construir filas — números reales para que Excel los reconozca
   const rows = filteredOrders.map(o => ({
     'N°':            o.number || '',
     'Cliente':       o.customer_name || '',
@@ -449,8 +453,6 @@ function exportExcel() {
   }))
 
   const ws = XLSX.utils.json_to_sheet(rows)
-
-  // Ancho de columnas aproximado
   ws['!cols'] = [
     {wch:8},{wch:22},{wch:40},{wch:12},{wch:16},{wch:16},
     {wch:6},{wch:12},{wch:12},{wch:14},{wch:16}
@@ -458,9 +460,7 @@ function exportExcel() {
 
   const wb = XLSX.utils.book_new()
   XLSX.utils.book_append_sheet(wb, ws, 'Órdenes')
-
-  const filename = `2wheels_${from}_${till}.xlsx`
-  XLSX.writeFile(wb, filename)
+  XLSX.writeFile(wb, `2wheels_${from}_${till}.xlsx`)
 }
 
 function fmtDateFull(iso) {
