@@ -37,7 +37,7 @@ export default async function handler(req, res) {
   p.append('stats[price_in_cents][]', 'sum')
   p.append('stats[item_count][]', 'sum')
   p.append('stats[total]', 'count')
-  p.append('include', 'customer')
+  p.append('include', 'customer,lines')
   p.append('page[number]', page)
   p.append('page[size]', size)
 
@@ -66,6 +66,16 @@ export default async function handler(req, res) {
       const a = item.attributes || {}
       const custRel = item.relationships?.customer?.data
       const custObj = custRel ? included.find(i => i.type === 'customers' && i.id === custRel.id) : null
+      // Resolver lines (productos) desde included
+      const lineRels = item.relationships?.lines?.data || []
+      const lines = lineRels
+        .map(rel => included.find(i => i.type === 'lines' && i.id === rel.id))
+        .filter(Boolean)
+        .map(l => ({
+          title:    l.attributes?.title || '—',
+          quantity: l.attributes?.quantity || 1,
+        }))
+
       return {
         id:                   item.id,
         number:               a.number,
@@ -78,6 +88,7 @@ export default async function handler(req, res) {
         price_in_cents:       a.price_in_cents       || 0,
         grand_total_in_cents: a.grand_total_in_cents  || 0,
         to_be_paid_in_cents:  a.to_be_paid_in_cents   || 0,
+        lines,
       }
     })
 
